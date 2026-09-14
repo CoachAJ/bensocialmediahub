@@ -84,38 +84,58 @@ def fetch_unprocessed_files(folder_id: str, manifest_key: str) -> list[dict]:
     manifest = load_manifest()
     processed_ids = set(manifest.get(manifest_key, []))
 
-    # 1. Try authenticated Google Drive API if available
-    try:
-        service = get_drive_service()
-        query = f"'{folder_id}' in parents and trashed = false"
-        results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
-        items = results.get("files", [])
-        return [item for item in items if item["id"] not in processed_ids]
-    except Exception as e:
-        # 2. Fall back to downloading directly from public shared Google Drive folder link
-        print(f"[Drive Sync] Using public shared Drive folder sync (Zero credentials needed)...")
-        import gdown
-        folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
-        local_dir = "tmp/shared_drive"
+    # 1. Try authenticated Google Drive API only if service account is explicitly configured
+    if config.GDRIVE_SERVICE_ACCOUNT_JSON:
         try:
-            gdown.download_folder(folder_url, output=local_dir, quiet=True)
-        except Exception as dl_err:
-            print(f"[Drive Sync] Notice (harvesting available files): {dl_err}")
-        
-        items = []
-        # Check both local_dir and tmp/test_download for available files
-        for search_dir in [local_dir, "tmp/test_download"]:
-            if os.path.exists(search_dir):
-                for f in os.listdir(search_dir):
-                    if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                        file_id = f.replace(" ", "_")
-                        if not any(it["id"] == file_id for it in items):
-                            items.append({
-                                "id": file_id,
-                                "name": f,
-                                "local_path": os.path.join(search_dir, f)
-                            })
-        return [item for item in items if item["id"] not in processed_ids]
+            service = get_drive_service()
+            query = f"'{folder_id}' in parents and trashed = false"
+            results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
+            items = results.get("files", [])
+            return [item for item in items if item["id"] not in processed_ids]
+        except Exception as e:
+            print(f"[Drive Sync] Service account note: {e}")
+
+    # 2. Fall back to downloading directly from public shared Google Drive folder link
+    print(f"[Drive Sync] Using public shared Drive folder sync (Zero credentials needed)...")
+    import gdown
+    folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
+    local_dir = "tmp/shared_drive"
+    # Check both local_dir and tmp/test_download for cached files first
+    items = []
+    for search_dir in [local_dir, "tmp/test_download"]:
+        if os.path.exists(search_dir):
+            for f in os.listdir(search_dir):
+                if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                    file_id = f.replace(" ", "_")
+                    if not any(it["id"] == file_id for it in items):
+                        items.append({
+                            "id": file_id,
+                            "name": f,
+                            "local_path": os.path.join(search_dir, f)
+                        })
+    unprocessed = [item for item in items if item["id"] not in processed_ids]
+    if unprocessed:
+        return unprocessed
+
+    # If none cached or all processed, attempt remote sync
+    try:
+        gdown.download_folder(folder_url, output=local_dir, quiet=True)
+    except Exception as dl_err:
+        print(f"[Drive Sync] Notice (harvesting available files): {dl_err}")
+    
+    items = []
+    for search_dir in [local_dir, "tmp/test_download"]:
+        if os.path.exists(search_dir):
+            for f in os.listdir(search_dir):
+                if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                    file_id = f.replace(" ", "_")
+                    if not any(it["id"] == file_id for it in items):
+                        items.append({
+                            "id": file_id,
+                            "name": f,
+                            "local_path": os.path.join(search_dir, f)
+                        })
+    return [item for item in items if item["id"] not in processed_ids]
 
 def download_file(file_id: str, output_path: str, item_meta: dict | None = None):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
