@@ -100,42 +100,34 @@ def fetch_unprocessed_files(folder_id: str, manifest_key: str) -> list[dict]:
     import gdown
     folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
     local_dir = "tmp/shared_drive"
-    # Check both local_dir and tmp/test_download for cached files first
-    items = []
-    for search_dir in [local_dir, "tmp/test_download"]:
-        if os.path.exists(search_dir):
-            for f in os.listdir(search_dir):
-                if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                    file_id = f.replace(" ", "_")
-                    if not any(it["id"] == file_id for it in items):
-                        items.append({
-                            "id": file_id,
-                            "name": f,
-                            "local_path": os.path.join(search_dir, f)
-                        })
-    unprocessed = [item for item in items if item["id"] not in processed_ids]
-    if unprocessed:
-        return unprocessed
 
-    # If none cached or all processed, attempt remote sync
+    # Map real Google Drive file IDs directly from folder metadata
+    file_id_map = {}
     try:
-        gdown.download_folder(folder_url, output=local_dir, quiet=True)
-    except Exception as dl_err:
-        print(f"[Drive Sync] Notice (harvesting available files): {dl_err}")
-    
+        remote_files = gdown.download_folder(url=folder_url, skip_download=True, quiet=True)
+        for rf in remote_files:
+            file_id_map[rf.path] = rf.id
+            file_id_map[rf.path.lower()] = rf.id
+    except Exception as e:
+        print(f"[Drive Sync] Metadata fetch note: {e}")
+
+    # Check both local_dir and tmp/test_download for available files
     items = []
     for search_dir in [local_dir, "tmp/test_download"]:
         if os.path.exists(search_dir):
             for f in os.listdir(search_dir):
                 if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                    file_id = f.replace(" ", "_")
-                    if not any(it["id"] == file_id for it in items):
+                    real_id = file_id_map.get(f) or file_id_map.get(f.lower()) or f.replace(" ", "_")
+                    direct_url = f"https://drive.google.com/uc?export=download&id={real_id}"
+                    if not any(it["name"] == f for it in items):
                         items.append({
-                            "id": file_id,
+                            "id": real_id,
                             "name": f,
+                            "direct_url": direct_url,
                             "local_path": os.path.join(search_dir, f)
                         })
-    return [item for item in items if item["id"] not in processed_ids]
+    unprocessed = [item for item in items if item["id"] not in processed_ids and item["name"] not in processed_ids]
+    return unprocessed
 
 def download_file(file_id: str, output_path: str, item_meta: dict | None = None):
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

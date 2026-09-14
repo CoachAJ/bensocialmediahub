@@ -82,13 +82,9 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 log_progress("ffmpeg_warn", f"Video rendering encountered an error: {e}. Proceeding with source clip.")
                 output_clip_path = local_raw_path
 
-            # Upload rendered video for public Buffer ingestion
-            log_progress("hosting", "Uploading processed short to Google Drive for public Buffer ingestion...")
-            try:
-                media_url = upload_public_clip(output_clip_path, f"ben_short_{file_id}.mp4")
-            except Exception as e:
-                log_progress("hosting_warn", f"Could not create public Drive stream URL: {e}")
-                media_url = None
+            # Direct video download link for public Buffer ingestion
+            media_url = file.get("direct_url") or upload_public_clip(output_clip_path, f"ben_short_{file_id}.mp4")
+            log_progress("hosting", f"Direct video asset URL for Buffer: {media_url}")
 
             # Schedule to Buffer profiles (respecting 10-post queue cap)
             for pid in target_profiles:
