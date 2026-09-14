@@ -148,6 +148,13 @@ async function executeRun() {
     });
 
     if (!res.ok) throw new Error(`Execution failed with HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.message) {
+      appendTerminalLine(`[CLOUD] ${data.message}`, data.dispatched !== false ? 'success' : 'warn');
+    }
+    if (data.actions_url) {
+      appendTerminalLine(`[GITHUB] View live workflow runs: ${data.actions_url}`, 'info');
+    }
     
     // Start polling logs
     pollLogs();
