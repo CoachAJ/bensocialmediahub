@@ -48,6 +48,36 @@ Conversion Architecture:
 - For X/Twitter: Include the direct link ({config.PODCASTS_URL}) and mention coach help/orders at {config.HEALTH_COACH_PHONE}, keeping text under 260 characters.
 """
 
+import time
+
+CANDIDATE_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"]
+
+def call_gemini_with_fallback(client, contents, schema, temperature=0.2) -> str:
+    """Tries models in order with retry on temporary 503 high demand spikes."""
+    last_err = None
+    for model_name in CANDIDATE_MODELS:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=schema,
+                        temperature=temperature,
+                    ),
+                )
+                return response.text
+            except Exception as e:
+                last_err = e
+                err_str = str(e)
+                if "503" in err_str or "UNAVAILABLE" in err_str or "capacity" in err_str:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                # If non-capacity error (e.g. 404), break to next model
+                break
+    raise last_err
+
 def analyze_raw_media(file_path: str) -> LongFormAnalysis:
     client = get_gemini_client()
     uploaded_file = client.files.upload(file=file_path)
@@ -60,16 +90,8 @@ def analyze_raw_media(file_path: str) -> LongFormAnalysis:
     3. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.
     """
     
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=[uploaded_file, prompt],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=LongFormAnalysis,
-            temperature=0.2,
-        ),
-    )
-    return LongFormAnalysis.model_validate_json(response.text)
+    text_resp = call_gemini_with_fallback(client, [uploaded_file, prompt], LongFormAnalysis, temperature=0.2)
+    return LongFormAnalysis.model_validate_json(text_resp)
 
 def generate_captions_for_existing_short(file_path: str) -> ExistingShortCaptions:
     client = get_gemini_client()
@@ -86,13 +108,6 @@ def generate_captions_for_existing_short(file_path: str) -> ExistingShortCaption
        - post_x: Punchy, authoritative summary under 250 characters with direct link: {config.PODCASTS_URL}.
     """
     
-    response = client.models.generate_content(
-        model="gemini-3.6-flash",
-        contents=[uploaded_file, prompt],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=ExistingShortCaptions,
-            temperature=0.3,
-        ),
-    )
-    return ExistingShortCaptions.model_validate_json(response.text)
+    text_resp = call_gemini_with_fallback(client, [uploaded_file, prompt], ExistingShortCaptions, temperature=0.3)
+    return ExistingShortCaptions.model_validate_json(text_resp)
+
