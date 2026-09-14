@@ -62,7 +62,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
             log_progress("process_short", f"Processing uploaded short: '{file_name}' ({file_id})")
 
             local_raw_path = f"tmp/raw_shorts/{file_name}"
-            download_file(file_id, local_raw_path)
+            download_file(file_id, local_raw_path, item_meta=file)
 
             log_progress("gemini", f"Analyzing video with Gemini 2.5 Flash for hooks and platform copy...")
             captions = generate_captions_for_existing_short(local_raw_path)
