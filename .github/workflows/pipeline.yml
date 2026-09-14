@@ -31,6 +31,11 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Set up Node.js for Buffer CLI
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install System FFmpeg & Fonts
         run: |
           sudo apt-get update
@@ -43,17 +48,17 @@ jobs:
       - name: Execute Promotion Engine
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY || secrets.BUFFER_ACCESS_TOKEN }}
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN || secrets.BUFFER_API_KEY }}
+          BUFFER_ORGANIZATION_ID: ${{ secrets.BUFFER_ORGANIZATION_ID }}
           BUFFER_PROFILE_IDS: ${{ secrets.BUFFER_PROFILE_IDS }}
           BUFFER_PROFILE_MAP_JSON: ${{ secrets.BUFFER_PROFILE_MAP_JSON }}
-          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
           GDRIVE_EXISTING_FOLDER_ID: ${{ secrets.GDRIVE_EXISTING_FOLDER_ID }}
-          GDRIVE_RAW_FOLDER_ID: ${{ secrets.GDRIVE_RAW_FOLDER_ID }}
-          GDRIVE_OUTPUT_FOLDER_ID: ${{ secrets.GDRIVE_OUTPUT_FOLDER_ID }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SHEET_WEBHOOK_URL: ${{ secrets.GOOGLE_SHEET_WEBHOOK_URL }}
           RSS_BENS_BYTES: ${{ secrets.RSS_BENS_BYTES }}
           RSS_MINERAL_WAY: ${{ secrets.RSS_MINERAL_WAY }}
           RSS_AGING_WELL: ${{ secrets.RSS_AGING_WELL }}
+          HEALTH_COACH_PHONE: ${{ secrets.HEALTH_COACH_PHONE || '(855) 835-2777' }}
         run: |
           MODE="${{ inputs.mode || 'all' }}"
           python main.py --mode "$MODE"
