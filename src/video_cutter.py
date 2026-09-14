@@ -88,8 +88,13 @@ def render_vertical_short(
         "-c:v", "libx264",
         "-preset", "fast",
         "-crf", "22",
+        "-pix_fmt", "yuv420p",
+        "-r", "30",
         "-c:a", "aac",
         "-b:a", "128k",
+        "-ar", "44100",
+        "-ac", "2",
+        "-movflags", "+faststart",
         output_path
     ]
 
