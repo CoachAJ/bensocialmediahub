@@ -1,16 +1,54 @@
 import os
 import io
 import json
-from google.oauth2.service_account import Credentials
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
+from google.oauth2.credentials import Credentials as UserCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 from src.config import config
 
-SCOPES = ["https://www.googleapis.com/auth/drive"]
+SCOPES = [
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/spreadsheets"
+]
+
+def get_credentials():
+    """
+    Returns valid Google credentials:
+    1. Checks for Service Account JSON in config.
+    2. Falls back to OAuth 2.0 user credentials (token.json or client_secret.json).
+    """
+    token_path = "token.json"
+    client_secrets_path = "client_secret.json"
+
+    # 1. Try Service Account JSON first
+    if config.GDRIVE_SERVICE_ACCOUNT_JSON:
+        try:
+            creds_dict = config.get_gdrive_credentials_dict()
+            return ServiceAccountCredentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        except Exception as e:
+            print(f"Service account parsing note: {e}")
+
+    # 2. Check for existing OAuth2 user token
+    if os.path.exists(token_path):
+        try:
+            return UserCredentials.from_authorized_user_file(token_path, SCOPES)
+        except Exception:
+            pass
+
+    # 3. Check for OAuth2 client_secret.json desktop app
+    if os.path.exists(client_secrets_path):
+        from google_auth_oauthlib.flow import InstalledAppFlow
+        flow = InstalledAppFlow.from_client_secrets_file(client_secrets_path, SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(token_path, "w") as token:
+            token.write(creds.to_json())
+        return creds
+
+    raise ValueError("No Google credentials found. Provide GDRIVE_SERVICE_ACCOUNT_JSON in .env or place client_secret.json in project root.")
 
 def get_drive_service():
-    creds_dict = config.get_gdrive_credentials_dict()
-    creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+    creds = get_credentials()
     return build("drive", "v3", credentials=creds)
 
 def load_manifest() -> dict:

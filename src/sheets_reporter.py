@@ -1,8 +1,5 @@
-import gspread
-from google.oauth2.service_account import Credentials
 from src.config import config
-
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+from src.drive_sync import get_credentials
 
 def log_event(
     timestamp: str,
@@ -20,8 +17,7 @@ def log_event(
         return
 
     try:
-        creds_dict = config.get_gdrive_credentials_dict()
-        creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPES)
+        creds = get_credentials()
         client = gspread.authorize(creds)
         sheet = client.open_by_key(config.GOOGLE_SHEET_ID).sheet1
         
