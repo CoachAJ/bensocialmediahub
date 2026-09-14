@@ -93,10 +93,12 @@ def schedule_via_buffer_cli(channel_id: str, text: str, media_url: str | None = 
         "text": text
     }
     
+    # Attach video asset if available
+    if media_url:
+        post_input["assets"] = [{"video": {"url": media_url}}]
+
     plat = platform_hint.lower()
     if "instagram" in plat:
-        if media_url:
-            post_input["assets"] = [{"video": {"url": media_url}}]
         post_input["metadata"] = {
             "instagram": {
                 "type": "reel",
@@ -104,26 +106,30 @@ def schedule_via_buffer_cli(channel_id: str, text: str, media_url: str | None = 
             }
         }
     elif "tiktok" in plat:
-        if media_url:
-            post_input["assets"] = [{"video": {"url": media_url}}]
-    elif media_url:
-        post_input["assets"] = [{"video": {"url": media_url}}]
+        post_input["metadata"] = {
+            "tiktok": {
+                "isAiGenerated": False
+            }
+        }
 
     cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "create", "--input", "-", "--output", "json"]
     try:
         res = subprocess.run(cmd, input=json.dumps(post_input), capture_output=True, text=True, env=env, timeout=30, shell=True)
         if res.returncode == 0 and res.stdout.strip():
-            return json.loads(res.stdout)
+            raw = json.loads(res.stdout)
+            return raw.get("post", raw)
         else:
             notice = res.stderr.strip() or res.stdout.strip()
-            print(f"[Buffer CLI Notice] {notice}")
-            # If automatic queue rejected (e.g. channel requires video asset), fallback to saving as draft
+            print(f"[Buffer CLI Notice] Direct queue attempt: {notice}")
+            # If automatic queue rejected, fallback to saving as draft
             draft_input = dict(post_input)
             draft_input["saveToDraft"] = True
             draft_res = subprocess.run(cmd, input=json.dumps(draft_input), capture_output=True, text=True, env=env, timeout=30, shell=True)
             if draft_res.returncode == 0 and draft_res.stdout.strip():
-                print(f"[Buffer CLI] Saved post to drafts for channel {channel_id}")
-                return json.loads(draft_res.stdout)
+                raw_draft = json.loads(draft_res.stdout)
+                post_data = raw_draft.get("post", raw_draft)
+                print(f"[Buffer CLI] Saved post to drafts for channel {channel_id} (ID: {post_data.get('id')})")
+                return post_data
     except Exception as e:
         print(f"Buffer CLI scheduling attempt notice: {e}")
     return None
