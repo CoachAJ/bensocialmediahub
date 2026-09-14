@@ -102,30 +102,45 @@ def fetch_unprocessed_files(folder_id: str, manifest_key: str) -> list[dict]:
     local_dir = "tmp/shared_drive"
 
     # Map real Google Drive file IDs directly from folder metadata
-    file_id_map = {}
+    items = []
     try:
         remote_files = gdown.download_folder(url=folder_url, skip_download=True, quiet=True)
-        for rf in remote_files:
-            file_id_map[rf.path] = rf.id
-            file_id_map[rf.path.lower()] = rf.id
+        if remote_files:
+            for rf in remote_files:
+                fname = os.path.basename(rf.path)
+                if fname.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                    real_id = rf.id
+                    direct_url = f"https://drive.google.com/uc?export=download&id={real_id}"
+                    # Check if locally cached
+                    local_path = None
+                    for search_dir in [local_dir, "tmp/test_download", "tmp/raw_shorts"]:
+                        cand = os.path.join(search_dir, fname)
+                        if os.path.exists(cand):
+                            local_path = cand
+                            break
+                    items.append({
+                        "id": real_id,
+                        "name": fname,
+                        "direct_url": direct_url,
+                        "local_path": local_path
+                    })
     except Exception as e:
         print(f"[Drive Sync] Metadata fetch note: {e}")
 
-    # Check both local_dir and tmp/test_download for available files
-    items = []
-    for search_dir in [local_dir, "tmp/test_download"]:
-        if os.path.exists(search_dir):
-            for f in os.listdir(search_dir):
-                if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                    real_id = file_id_map.get(f) or file_id_map.get(f.lower()) or f.replace(" ", "_")
-                    direct_url = f"https://drive.google.com/uc?export=download&id={real_id}"
-                    if not any(it["name"] == f for it in items):
-                        items.append({
-                            "id": real_id,
-                            "name": f,
-                            "direct_url": direct_url,
-                            "local_path": os.path.join(search_dir, f)
-                        })
+    # Fallback to local files if remote listing had an issue
+    if not items:
+        for search_dir in [local_dir, "tmp/test_download", "tmp/raw_shorts"]:
+            if os.path.exists(search_dir):
+                for f in os.listdir(search_dir):
+                    if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                        direct_url = f"https://drive.google.com/uc?export=download&id={f}"
+                        if not any(it["name"] == f for it in items):
+                            items.append({
+                                "id": f,
+                                "name": f,
+                                "direct_url": direct_url,
+                                "local_path": os.path.join(search_dir, f)
+                            })
     unprocessed = [item for item in items if item["id"] not in processed_ids and item["name"] not in processed_ids]
     return unprocessed
 

@@ -51,13 +51,13 @@ def get_channel_queue_count(profile_id: str) -> int:
         try:
             env = os.environ.copy()
             env["BUFFER_API_KEY"] = token
-            cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "list", "--organization-id", org_id, "--output", "json"]
+            cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "list", "--organization-id", org_id, "--fields", "items.id,items.channel.id,items.status", "--output", "json"]
             res = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=15, shell=True)
             if res.returncode == 0 and res.stdout.strip():
                 data = json.loads(res.stdout)
                 items = data.get("items", [])
-                # Count items scheduled for this channel
-                channel_posts = [p for p in items if p.get("channelId") == profile_id]
+                # Count items scheduled for this channel (only pending scheduled/sending count towards 10-post limit)
+                channel_posts = [p for p in items if (p.get("channel", {}).get("id") == profile_id or p.get("channelId") == profile_id) and p.get("status") in ["scheduled", "sending"]]
                 return len(channel_posts)
         except Exception:
             pass

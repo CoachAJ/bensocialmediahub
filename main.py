@@ -113,7 +113,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
     # ==========================================
     if mode in ["all", "podcasts"]:
         log_progress("rss", "Checking podcast RSS feeds (Pharmacist Ben's Bytes, The Mineral Way, The Art of Aging Well)...")
-        new_episodes = fetch_unprocessed_podcast_episodes(max_per_feed=1)
+        new_episodes = fetch_unprocessed_podcast_episodes(max_per_feed=3)
         log_progress("rss", f"Found {len(new_episodes)} new podcast episodes across feeds.")
 
         for ep in new_episodes[:max_items_per_source]:
