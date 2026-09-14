@@ -44,6 +44,25 @@ def get_channel_queue_count(profile_id: str) -> int:
     token = config.BUFFER_ACCESS_TOKEN
     if not token:
         return 0
+
+    # 1. Try Buffer CLI with organization ID if available
+    org_id = config.BUFFER_ORGANIZATION_ID
+    if org_id:
+        try:
+            env = os.environ.copy()
+            env["BUFFER_API_KEY"] = token
+            cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "list", "--organization-id", org_id, "--output", "json"]
+            res = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=15)
+            if res.returncode == 0 and res.stdout.strip():
+                data = json.loads(res.stdout)
+                items = data.get("items", [])
+                # Count items scheduled for this channel
+                channel_posts = [p for p in items if p.get("channelId") == profile_id]
+                return len(channel_posts)
+        except Exception:
+            pass
+
+    # 2. Fallback to legacy REST API
     url = f"{BUFFER_API_BASE}/profiles/{profile_id}/updates/pending.json"
     params = {"access_token": token}
     try:
@@ -102,7 +121,7 @@ def schedule_buffer_post(
     if profile_ids:
         cli_result = schedule_via_buffer_cli(profile_ids[0], text, media_url)
         if cli_result:
-            return {"success": True, "cli": True, "updates": [{"id": cli_result.get("id", "cli_post")]}}
+            return {"success": True, "cli": True, "updates": [{"id": cli_result.get("id", "cli_post")}]}
 
     # Fallback to REST API
     url = f"{BUFFER_API_BASE}/updates/create.json"

@@ -19,6 +19,7 @@ class Config(BaseModel):
             p.strip() for p in os.getenv("BUFFER_PROFILE_IDS", "").split(",") if p.strip()
         ]
     )
+    BUFFER_ORGANIZATION_ID: str = Field(default_factory=lambda: os.getenv("BUFFER_ORGANIZATION_ID", ""))
     # Profile mapping allows mapping specific Buffer Profile IDs to their platform type (e.g. {"id1": "tiktok", "id2": "instagram", "id3": "x"})
     BUFFER_PROFILE_MAP_JSON: str = Field(default_factory=lambda: os.getenv("BUFFER_PROFILE_MAP_JSON", "{}"))
 
@@ -28,6 +29,7 @@ class Config(BaseModel):
     GDRIVE_RAW_FOLDER_ID: str = Field(default_factory=lambda: os.getenv("GDRIVE_RAW_FOLDER_ID", ""))
     GDRIVE_OUTPUT_FOLDER_ID: str = Field(default_factory=lambda: os.getenv("GDRIVE_OUTPUT_FOLDER_ID", ""))
     GOOGLE_SHEET_ID: str = Field(default_factory=lambda: os.getenv("GOOGLE_SHEET_ID", ""))
+    GOOGLE_SHEET_WEBHOOK_URL: str = Field(default_factory=lambda: os.getenv("GOOGLE_SHEET_WEBHOOK_URL", ""))
 
     # Podcast RSS Feeds
     RSS_BENS_BYTES: str = Field(

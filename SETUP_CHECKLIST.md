@@ -120,12 +120,37 @@ This document is your step-by-step guide detailing **every item you need to prov
 
 ### 5. Google Sheet ID (`GOOGLE_SHEET_ID`)
 * **What it does**: Tracks every scheduled post, timestamp, channel, and Buffer ID in a spreadsheet for auditing.
-* **How to get it**:
-  1. Create a new Google Sheet (e.g. named `Pharmacist Ben Social Media Logs`).
-  2. Look at the browser URL:
-     `https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit`
-  3. The string between `/d/` and `/edit` is your **Sheet ID** (`1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`).
-  4. Remember to **Share** this sheet with your service account email as **Editor**.
+
+#### Method A: Instant Google Sheets Webhook (Recommended — No Google Cloud keys required)
+1. Open your Google Sheet (e.g. create a sheet named **"Pharmacist Ben Social Media Log"**).
+2. In the top menu, click **Extensions > Apps Script**.
+3. Replace any code with this snippet:
+```javascript
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = JSON.parse(e.postData.contents);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(["Timestamp", "Asset Name", "Asset Type", "Status", "Buffer Update ID", "CTA Destination"]);
+  }
+  sheet.appendRow([data.timestamp, data.asset_name, data.asset_type, data.status, data.buffer_update_id, data.cta_destination]);
+  return ContentService.createTextOutput("Success").setMimeType(ContentService.MimeType.TEXT);
+}
+```
+4. Click **Deploy > New deployment**.
+5. Select type **Web app**.
+6. Set **Execute as**: *Me* and **Who has access**: *Anyone*.
+7. Click **Deploy** and copy the **Web app URL**.
+8. Paste it into your `.env`:
+```bash
+GOOGLE_SHEET_WEBHOOK_URL="https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec"
+```
+*Done! Every post generated and queued will automatically append a live row to your sheet.*
+
+#### Method B: Google Cloud Service Account (gspread)
+1. Share your Google Sheet with your service account email as **Editor**.
+2. Copy the Sheet ID from the URL (`https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit`).
+3. The string between `/d/` and `/edit` is your **Sheet ID** (`1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`).
+4. Remember to **Share** this sheet with your service account email as **Editor**.
 * **Where to put it**:
   * **Local**: In `.env` as: `GOOGLE_SHEET_ID=1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms`
   * **GitHub**: Add secret named `GOOGLE_SHEET_ID`.
