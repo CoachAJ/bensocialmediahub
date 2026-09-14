@@ -36,3 +36,14 @@ const correctIdx = {{CORRECT_IDX}};
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(rendered)
+
+    # Mirror to dashboard/quizzes for direct serving via Netlify and Master Hub
+    dashboard_dir = os.path.join(os.path.dirname(__file__), "..", "dashboard", "quizzes")
+    os.makedirs(dashboard_dir, exist_ok=True)
+    filename = os.path.basename(output_path)
+    dashboard_quiz_path = os.path.join(dashboard_dir, filename)
+    try:
+        with open(dashboard_quiz_path, "w", encoding="utf-8") as f:
+            f.write(rendered)
+    except Exception:
+        pass
