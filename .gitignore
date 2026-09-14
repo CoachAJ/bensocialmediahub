@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+*.json.key
+service-account*.json
+credentials.json
+
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# Large media files and temporary runner directories
+tmp/
+output/shorts/
+output/audiograms/
+*.mp4
+*.mp3
+*.wav
+*.m4a
+
+# Operating system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store

@@ -1,0 +1,66 @@
+name: Pharmacist Ben Promotion Engine Pipeline
+
+on:
+  schedule:
+    - cron: '0 12 * * *' # Daily at 12:00 UTC (8:00 AM EST)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Pipeline Run Mode'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - shorts
+          - podcasts
+
+permissions:
+  contents: write
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install System FFmpeg & Fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+
+      - name: Install Python Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Execute Promotion Engine
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BUFFER_ACCESS_TOKEN: ${{ secrets.BUFFER_ACCESS_TOKEN }}
+          BUFFER_PROFILE_IDS: ${{ secrets.BUFFER_PROFILE_IDS }}
+          BUFFER_PROFILE_MAP_JSON: ${{ secrets.BUFFER_PROFILE_MAP_JSON }}
+          GDRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+          GDRIVE_EXISTING_FOLDER_ID: ${{ secrets.GDRIVE_EXISTING_FOLDER_ID }}
+          GDRIVE_RAW_FOLDER_ID: ${{ secrets.GDRIVE_RAW_FOLDER_ID }}
+          GDRIVE_OUTPUT_FOLDER_ID: ${{ secrets.GDRIVE_OUTPUT_FOLDER_ID }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          RSS_BENS_BYTES: ${{ secrets.RSS_BENS_BYTES }}
+          RSS_MINERAL_WAY: ${{ secrets.RSS_MINERAL_WAY }}
+          RSS_AGING_WELL: ${{ secrets.RSS_AGING_WELL }}
+        run: |
+          MODE="${{ inputs.mode || 'all' }}"
+          python main.py --mode "$MODE"
+
+      - name: Commit & Push Updated Manifest & Quizzes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/processed.json output/quizzes/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto: Update processed manifest & quiz embeds" && git push)

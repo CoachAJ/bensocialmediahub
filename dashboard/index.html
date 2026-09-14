@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pharmacist Ben's Social Media Hub | Master Command Center</title>
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand-group">
+        <div class="brand-logo-gem">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">Pharmacist Ben's Academy</div>
+          <div class="brand-subtitle">Autonomous Social Media Hub & Promotion Engine</div>
+        </div>
+      </div>
+
+      <div class="nav-metrics">
+        <a href="https://pharmacistbensacademy.com" target="_blank" rel="noopener" class="funnel-badge" id="funnel-link">
+          <span class="pulse-dot"></span>
+          <span>Traffic Target: <strong>pharmacistbensacademy.com</strong></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </a>
+
+        <div class="external-links">
+          <a href="https://buffer.com" target="_blank" rel="noopener" class="nav-btn" title="Open Buffer Dashboard">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Buffer
+          </a>
+          <button id="refresh-btn" class="nav-btn" title="Refresh Live Statistics">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-main">
+      
+      <!-- Row 1: Buffer Queue Gauges & System Health -->
+      <section class="section-block">
+        <div class="section-header">
+          <h2>Buffer Channel Queue Status <span class="badge-free">Free Tier: 10 Posts Max / Channel</span></h2>
+          <span class="refresh-indicator" id="last-updated-text">Updating live...</span>
+        </div>
+
+        <div class="queue-gauges-grid">
+          <!-- TikTok Gauge -->
+          <div class="channel-card tiktok-card">
+            <div class="channel-head">
+              <div class="channel-info">
+                <span class="platform-icon tiktok-icon">TT</span>
+                <div>
+                  <div class="channel-name">TikTok</div>
+                  <div class="channel-desc">9:16 Video + Hooks</div>
+                </div>
+              </div>
+              <span class="queue-pill" id="tt-pill">0 / 10</span>
+            </div>
+            <div class="meter-bar-container">
+              <div class="meter-bar" id="tt-bar" style="width: 0%;"></div>
+            </div>
+            <div class="card-footer-stats">
+              <span id="tt-slots-text">10 slots available</span>
+              <span class="status-ready" id="tt-status">Ready</span>
+            </div>
+          </div>
+
+          <!-- Instagram Reels Gauge -->
+          <div class="channel-card ig-card">
+            <div class="channel-head">
+              <div class="channel-info">
+                <span class="platform-icon ig-icon">IG</span>
+                <div>
+                  <div class="channel-name">Instagram Reels</div>
+                  <div class="channel-desc">Reels + Link in Bio</div>
+                </div>
+              </div>
+              <span class="queue-pill" id="ig-pill">0 / 10</span>
+            </div>
+            <div class="meter-bar-container">
+              <div class="meter-bar" id="ig-bar" style="width: 0%;"></div>
+            </div>
+            <div class="card-footer-stats">
+              <span id="ig-slots-text">10 slots available</span>
+              <span class="status-ready" id="ig-status">Ready</span>
+            </div>
+          </div>
+
+          <!-- X / Twitter Gauge -->
+          <div class="channel-card x-card">
+            <div class="channel-head">
+              <div class="channel-info">
+                <span class="platform-icon x-icon">&#120143;</span>
+                <div>
+                  <div class="channel-name">X / Twitter</div>
+                  <div class="channel-desc">Motion Video & Direct URL</div>
+                </div>
+              </div>
+              <span class="queue-pill" id="x-pill">0 / 10</span>
+            </div>
+            <div class="meter-bar-container">
+              <div class="meter-bar" id="x-bar" style="width: 0%;"></div>
+            </div>
+            <div class="card-footer-stats">
+              <span id="x-slots-text">10 slots available</span>
+              <span class="status-ready" id="x-status">Ready</span>
+            </div>
+          </div>
+
+          <!-- Total Assets KPI -->
+          <div class="channel-card stats-summary-card">
+            <div class="channel-head">
+              <div class="channel-info">
+                <span class="platform-icon stat-icon">&#128200;</span>
+                <div>
+                  <div class="channel-name">Asset Ingestion</div>
+                  <div class="channel-desc">Total Processed Manifest</div>
+                </div>
+              </div>
+            </div>
+            <div class="stat-counts-row">
+              <div class="stat-col">
+                <div class="big-stat" id="shorts-count">0</div>
+                <div class="stat-label">Drive Shorts</div>
+              </div>
+              <div class="stat-col">
+                <div class="big-stat" id="podcasts-count">0</div>
+                <div class="stat-label">Podcast Drops</div>
+              </div>
+              <div class="stat-col">
+                <div class="big-stat" id="quizzes-count">0</div>
+                <div class="stat-label">Skool Quizzes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 2: Control Room / Pipeline Trigger & Live Terminal Output -->
+      <section class="section-block">
+        <div class="control-room-layout">
+          <!-- Action Panel -->
+          <div class="action-panel">
+            <div class="panel-header">
+              <h3>Execution Control</h3>
+              <span class="panel-badge" id="runner-state-badge">Engine Ready</span>
+            </div>
+            <p class="panel-desc">
+              Trigger automated ingestion, multimodal clip extraction, vertical 9:16 re-encoding, and Buffer scheduling directly from here.
+            </p>
+
+            <div class="mode-selector">
+              <label class="mode-option active" data-mode="all">
+                <input type="radio" name="run-mode" value="all" checked>
+                <div class="mode-details">
+                  <strong>Full Auto Sync</strong>
+                  <span>Shorts + 3 Podcast Feeds</span>
+                </div>
+              </label>
+
+              <label class="mode-option" data-mode="shorts">
+                <input type="radio" name="run-mode" value="shorts">
+                <div class="mode-details">
+                  <strong>Google Drive Shorts Only</strong>
+                  <span>Pre-cut clips (<3 min)</span>
+                </div>
+              </label>
+
+              <label class="mode-option" data-mode="podcasts">
+                <input type="radio" name="run-mode" value="podcasts">
+                <div class="mode-details">
+                  <strong>Podcast Feeds (RSS)</strong>
+                  <span>Bytes, Mineral Way, Aging Well</span>
+                </div>
+              </label>
+
+              <label class="mode-option" data-mode="dry-run">
+                <input type="radio" name="run-mode" value="dry-run">
+                <div class="mode-details">
+                  <strong>Dry Run / Diagnostics</strong>
+                  <span>Test APIs without posting</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="action-buttons-group">
+              <button id="run-pipeline-btn" class="primary-execute-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>Run Pipeline Now</span>
+              </button>
+            </div>
+
+            <!-- Service Health Indicators -->
+            <div class="service-health-box">
+              <div class="health-item" id="health-gemini">
+                <span class="health-dot"></span>
+                <span>Gemini 2.5 Flash</span>
+              </div>
+              <div class="health-item" id="health-buffer">
+                <span class="health-dot"></span>
+                <span>Buffer API (Free)</span>
+              </div>
+              <div class="health-item" id="health-drive">
+                <span class="health-dot"></span>
+                <span>Google Drive</span>
+              </div>
+              <div class="health-item" id="health-rss">
+                <span class="health-dot"></span>
+                <span>3 Podcast Feeds</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Streaming Terminal / Log Output -->
+          <div class="terminal-panel">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <span class="t-dot red"></span>
+                <span class="t-dot yellow"></span>
+                <span class="t-dot green"></span>
+                <span class="terminal-title">live-execution-stream.log</span>
+              </div>
+              <div class="terminal-actions">
+                <button id="clear-log-btn" class="t-btn">Clear</button>
+                <button id="copy-log-btn" class="t-btn">Copy</button>
+              </div>
+            </div>
+            <div class="terminal-body" id="terminal-stream">
+              <div class="terminal-line system-msg">[SYSTEM] Master Hub Initialized. Waiting for execution trigger...</div>
+              <div class="terminal-line info-msg">[INFO] Funnel Destination locked: https://pharmacistbensacademy.com</div>
+              <div class="terminal-line info-msg">[INFO] Ready to ingest: 'The Mineral Way', 'Pharmacist Ben\'s Bytes', and 'The Art of Aging Well'.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 3: Podcast Shows Monitor & Skool Community Quiz Preview -->
+      <section class="section-block">
+        <div class="podcasts-and-preview-grid">
+          <!-- 3 Podcast Shows -->
+          <div class="podcasts-monitor-card">
+            <div class="section-header">
+              <h3>Monitored Podcast Channels</h3>
+              <span class="badge-sub">Auto RSS Ingest</span>
+            </div>
+            <div class="podcast-items-list">
+              <div class="podcast-item">
+                <div class="podcast-avatar bytes-avatar">&#128161;</div>
+                <div class="podcast-meta">
+                  <div class="podcast-title">Pharmacist Ben's Bytes</div>
+                  <div class="podcast-channels">YouTube &bull; Rumble &bull; Spotify RSS</div>
+                </div>
+                <span class="feed-status-badge">Active</span>
+              </div>
+
+              <div class="podcast-item">
+                <div class="podcast-avatar mineral-avatar">&#128142;</div>
+                <div class="podcast-meta">
+                  <div class="podcast-title">The Mineral Way Podcast</div>
+                  <div class="podcast-channels">Libsyn RSS &bull; Nutritional Biochemistry</div>
+                </div>
+                <span class="feed-status-badge">Active</span>
+              </div>
+
+              <div class="podcast-item">
+                <div class="podcast-avatar aging-avatar">&#127793;</div>
+                <div class="podcast-meta">
+                  <div class="podcast-title">The Art of Aging Well</div>
+                  <div class="podcast-channels">Beauty, Body and Biology with Pharmacist Ben</div>
+                </div>
+                <span class="feed-status-badge new-show">New Show</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Skool Quiz Module Preview -->
+          <div class="quiz-preview-card">
+            <div class="section-header">
+              <h3>Skool Community Quiz Embed Preview</h3>
+              <span class="badge-sub">AI Generated Module</span>
+            </div>
+            <div class="quiz-preview-frame">
+              <div class="quiz-card-inline">
+                <span class="badge-quiz">Pharmacist Ben's Biology Challenge</span>
+                <div class="inline-quiz-q" id="preview-question">
+                  Why does Pharmacist Ben consider digestive integrity more foundational than isolated synthetic vitamin supplementation?
+                </div>
+                <div class="inline-options-list">
+                  <button class="inline-opt" onclick="testQuizClick(this, false)">A) Synthetic vitamins are completely chemically inert in the bloodstream</button>
+                  <button class="inline-opt" onclick="testQuizClick(this, true)">B) Nutrients cannot be delivered to cells if intestinal mucosal barrier and bile flow are compromised</button>
+                  <button class="inline-opt" onclick="testQuizClick(this, false)">C) Digestion only affects carbohydrate breakdown, not cellular minerals</button>
+                </div>
+                <div class="inline-quiz-footer">
+                  <a href="https://pharmacistbensacademy.com" target="_blank">Full Archive & Academy &rarr; PharmacistBensAcademy.com</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>Pharmacist Ben's Social Media Hub &bull; Built with Gemini 2.5 Flash & Buffer API &bull; Driving to <a href="https://pharmacistbensacademy.com" target="_blank">PharmacistBensAcademy.com</a></div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

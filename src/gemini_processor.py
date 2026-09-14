@@ -1,0 +1,97 @@
+import os
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, Field
+from src.config import config
+
+def get_gemini_client():
+    if not config.GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY environment variable is missing.")
+    return genai.Client(api_key=config.GEMINI_API_KEY)
+
+class ClipProposal(BaseModel):
+    start_time: str = Field(description="Format HH:MM:SS or MM:SS")
+    end_time: str = Field(description="Format HH:MM:SS or MM:SS")
+    hook_headline: str = Field(description="Short, punchy upper video hook (under 7 words)")
+    burned_cta_text: str = Field(description="Lower-third CTA text, e.g., 'Full Episode @ PharmacistBensAcademy.com'")
+    caption_tiktok: str = Field(description="Punchy TikTok caption with relevant hashtags and link-in-bio prompt")
+    caption_instagram: str = Field(description="Educational Instagram caption with biological value, hashtags, and link-in-bio prompt")
+    post_x: str = Field(description="Concise X/Twitter post under 250 characters including direct link to pharmacistbensacademy.com/podcasts")
+
+class LongFormAnalysis(BaseModel):
+    episode_core_concept: str
+    quiz_question: str
+    quiz_options: list[str]
+    quiz_correct_index: int
+    quiz_explanation: str
+    clips: list[ClipProposal]
+
+class ExistingShortCaptions(BaseModel):
+    hook_headline: str = Field(description="Punchy upper video hook (max 6 words)")
+    burned_cta_text: str = Field(description="Visual lower-third banner text (e.g. 'More on PharmacistBensAcademy.com')")
+    caption_tiktok: str
+    caption_instagram: str
+    post_x: str
+
+SYSTEM_EDITORIAL_RULES = f"""
+You are the senior editorial director and digital growth strategist for Pharmacist Ben's holistic health broadcasts and academy.
+
+Core Scientific & Philosophical Guidelines:
+1. Emphasize health as a holistic biological process, cellular energy, and the 90 essential nutrients.
+2. Address root causes (metabolism, digestive integrity, blood purification, mineral balance) rather than symptom chasing.
+3. NEVER make "health in a bottle", miracle cure, or synthetic pharmaceutical claims. Position wellness as biological mastery and personal empowerment.
+
+Conversion Architecture:
+- The PRIMARY objective is driving audiences to {config.WEBSITE_URL} (specifically the Podcasts archive page at {config.PODCASTS_URL}).
+- For TikTok/Instagram: Always tell viewers to tap the link in the bio to access the complete podcast archive and join the Academy.
+- For X/Twitter: Always include the direct link ({config.PODCASTS_URL}) and keep text strictly under 260 characters so it fits within single-post limits.
+"""
+
+def analyze_raw_media(file_path: str) -> LongFormAnalysis:
+    client = get_gemini_client()
+    uploaded_file = client.files.upload(file=file_path)
+    
+    prompt = f"""
+    {SYSTEM_EDITORIAL_RULES}
+    Analyze this video/audio media from Pharmacist Ben's broadcast.
+    1. Identify 1 to 2 distinct, highly engaging 30-60 second segments focused on root-cause biology, cellular health, or nutrition.
+    2. For each segment, provide exact start and end timestamps (MM:SS), an on-screen hook headline, a burned visual CTA banner directing to PharmacistBensAcademy.com, and platform-tailored copy.
+    3. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.
+    """
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[uploaded_file, prompt],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=LongFormAnalysis,
+            temperature=0.2,
+        ),
+    )
+    return LongFormAnalysis.model_validate_json(response.text)
+
+def generate_captions_for_existing_short(file_path: str) -> ExistingShortCaptions:
+    client = get_gemini_client()
+    uploaded_file = client.files.upload(file=file_path)
+    
+    prompt = f"""
+    {SYSTEM_EDITORIAL_RULES}
+    Watch/listen to this short video.
+    1. Extract a punchy upper video hook headline (max 6 words, all-caps or high-impact title).
+    2. Propose a lower-third CTA banner text (e.g. "Full Archives @ PharmacistBensAcademy.com").
+    3. Generate 3 platform-tailored copy variants:
+       - caption_tiktok: Engaging hook + curiosity trigger + CTA to link-in-bio to explore the podcast archive.
+       - caption_instagram: Deeper educational context + hashtags + CTA to link-in-bio.
+       - post_x: Punchy, authoritative summary under 250 characters with direct link: {config.PODCASTS_URL}.
+    """
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=[uploaded_file, prompt],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ExistingShortCaptions,
+            temperature=0.3,
+        ),
+    )
+    return ExistingShortCaptions.model_validate_json(response.text)
