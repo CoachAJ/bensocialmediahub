@@ -38,9 +38,12 @@ class Config(BaseModel):
         default_factory=lambda: os.getenv("RSS_AGING_WELL", "https://feeds.buzzsprout.com/placeholder.rss")
     )
 
-    # Core Destinations
+    # Core Destinations & Contact
     WEBSITE_URL: str = Field(default="https://pharmacistbensacademy.com")
     PODCASTS_URL: str = Field(default="https://pharmacistbensacademy.com/podcasts")
+    HEALTH_COACH_PHONE: str = Field(
+        default_factory=lambda: os.getenv("HEALTH_COACH_PHONE", "(855) 835-2777")
+    )
     MANIFEST_PATH: str = Field(default="data/processed.json")
 
     def get_gdrive_credentials_dict(self) -> dict:

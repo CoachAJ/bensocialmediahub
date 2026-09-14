@@ -19,6 +19,7 @@ This document is your step-by-step guide detailing **every item you need to prov
 | **Drive Shorts Folder ID** | `GDRIVE_EXISTING_FOLDER_ID` | Ingesting pre-cut videos (<3m) | Google Drive Folder URL |
 | **Google Sheet ID** | `GOOGLE_SHEET_ID` | Audit logging & metrics | Google Sheet URL |
 | **Podcast RSS Feeds** | `RSS_BENS_BYTES`, etc. | Automated episode ingestion | Spotify/Libsyn/Buzzsprout RSS |
+| **Health Coach Hotline** | `HEALTH_COACH_PHONE` | Social CTAs & Quiz embeds | `(855) 835-2777` (Configured) |
 | **GitHub Access Token** | `GH_PAT` | Netlify 1-click cloud trigger | [GitHub Settings](https://github.com/settings/tokens) |
 
 ---

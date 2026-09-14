@@ -43,8 +43,9 @@ Core Scientific & Philosophical Guidelines:
 
 Conversion Architecture:
 - The PRIMARY objective is driving audiences to {config.WEBSITE_URL} (specifically the Podcasts archive page at {config.PODCASTS_URL}).
-- For TikTok/Instagram: Always tell viewers to tap the link in the bio to access the complete podcast archive and join the Academy.
-- For X/Twitter: Always include the direct link ({config.PODCASTS_URL}) and keep text strictly under 260 characters so it fits within single-post limits.
+- Certified Health Coach & Product Orders: Always provide the dedicated hotline: {config.HEALTH_COACH_PHONE} for viewers who need certified health coach guidance, have questions, or want to order products.
+- For TikTok/Instagram: Tell viewers to tap the link in bio for full episode archives & Academy membership, and call {config.HEALTH_COACH_PHONE} for certified health coach guidance or to order products.
+- For X/Twitter: Include the direct link ({config.PODCASTS_URL}) and mention coach help/orders at {config.HEALTH_COACH_PHONE}, keeping text under 260 characters.
 """
 
 def analyze_raw_media(file_path: str) -> LongFormAnalysis:
