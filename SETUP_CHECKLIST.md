@@ -39,31 +39,33 @@ This document is your step-by-step guide detailing **every item you need to prov
 
 ---
 
-### 2. Buffer Access Token & Channel Profile IDs
+### 2. Buffer API Key & Channel Profile IDs
 * **What it does**: Schedules videos and platform-specific copy to your TikTok, Instagram Reels, and X channels within the Free Tier limits.
 
-#### A. Buffer Access Token (`BUFFER_ACCESS_TOKEN`)
-* **How to get it**:
-  1. Log into your account at **[https://buffer.com](https://buffer.com)**.
-  2. Go to the Developer Portal: **[https://buffer.com/developers/apps](https://buffer.com/developers/apps)**.
-  3. Click **"Create an App"** (or use existing app).
-  4. Name it `Ben Social Hub`. Redirect URL can be `https://buffer.com`.
-  5. Once created, copy the **Personal Access Token** under "Access Token" (starts with `1/...`).
+#### A. Buffer API Key (`BUFFER_API_KEY` or `BUFFER_ACCESS_TOKEN`)
+* **How to get it (Super Easy — 1 Click)**:
+  1. Log into your account at **[https://publish.buffer.com](https://publish.buffer.com)**.
+  2. Go directly to API Settings: **[https://publish.buffer.com/settings/api](https://publish.buffer.com/settings/api)**.
+  3. Click **"Get API Key"** (or "Create API Key").
+  4. Copy your API key.
 * **Where to put it**:
-  * **Local**: In `.env` as: `BUFFER_ACCESS_TOKEN=1/...`
-  * **GitHub**: Add secret named `BUFFER_ACCESS_TOKEN`
+  * **Local**: In `.env` as: `BUFFER_API_KEY=your_key_here` (or `BUFFER_ACCESS_TOKEN=your_key_here`)
+  * **GitHub**: Add secret named `BUFFER_ACCESS_TOKEN` (or `BUFFER_API_KEY`)
   * **Netlify**: Add variable named `BUFFER_ACCESS_TOKEN` in Netlify Site configuration (enables live queue gauges).
 
 #### B. Buffer Profile IDs (`BUFFER_PROFILE_IDS` & `BUFFER_PROFILE_MAP_JSON`)
 * **How to get it**:
-  1. In Buffer's web app, click on your connected channel (e.g., your TikTok, Instagram, or X account).
-  2. Look at the browser address bar:
-     `https://publish.buffer.com/profile/65f1234567890abcdef12345/tab/queue`
-  3. The alphanumeric string after `/profile/` (e.g., `65f1234567890abcdef12345`) is that channel's **Profile ID**.
-  4. Note down the Profile ID for:
-     * TikTok
-     * Instagram
-     * X (Twitter)
+  * **Method 1 (Instant via Buffer CLI)**:
+    Once you have your API key, simply open your terminal and run:
+    ```bash
+    npx @bufferapp/cli channels list
+    ```
+    This immediately prints all your connected channel names (TikTok, Instagram, X) and their exact channel IDs!
+  * **Method 2 (Via Web Browser)**:
+    1. In Buffer's web app, click on your connected channel.
+    2. Look at the browser address bar:
+       `https://publish.buffer.com/profile/65f1234567890abcdef12345/tab/queue`
+    3. The string after `/profile/` (e.g., `65f1234567890abcdef12345`) is that channel's **Profile ID**.
 * **Where to put it**:
   * **Local & GitHub**:
     ```env

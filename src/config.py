@@ -11,7 +11,9 @@ load_dotenv()
 class Config(BaseModel):
     # API Credentials
     GEMINI_API_KEY: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    BUFFER_ACCESS_TOKEN: str = Field(default_factory=lambda: os.getenv("BUFFER_ACCESS_TOKEN", ""))
+    BUFFER_ACCESS_TOKEN: str = Field(
+        default_factory=lambda: os.getenv("BUFFER_API_KEY", os.getenv("BUFFER_ACCESS_TOKEN", ""))
+    )
     BUFFER_PROFILE_IDS: list[str] = Field(
         default_factory=lambda: [
             p.strip() for p in os.getenv("BUFFER_PROFILE_IDS", "").split(",") if p.strip()
