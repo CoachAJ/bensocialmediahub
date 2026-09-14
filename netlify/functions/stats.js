@@ -62,7 +62,7 @@ exports.handler = async function(event, context) {
     health: {
       gemini: Boolean(process.env.GEMINI_API_KEY),
       buffer: Boolean(bufferToken),
-      drive: Boolean(process.env.GDRIVE_SERVICE_ACCOUNT_JSON),
+      drive: Boolean(process.env.GDRIVE_EXISTING_FOLDER_ID || process.env.GDRIVE_SERVICE_ACCOUNT_JSON),
       rss: true
     },
     current_status: "idle",
