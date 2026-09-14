@@ -45,7 +45,15 @@ def get_credentials():
             token.write(creds.to_json())
         return creds
 
-    raise ValueError("No Google credentials found. Provide GDRIVE_SERVICE_ACCOUNT_JSON in .env or place client_secret.json in project root.")
+    # 4. Check for Google Cloud CLI Application Default Credentials (ADC)
+    try:
+        import google.auth
+        creds, _ = google.auth.default(scopes=SCOPES)
+        return creds
+    except Exception:
+        pass
+
+    raise ValueError("No Google credentials found. Provide GDRIVE_SERVICE_ACCOUNT_JSON in .env or run 'gcloud auth application-default login'.")
 
 def get_drive_service():
     creds = get_credentials()
