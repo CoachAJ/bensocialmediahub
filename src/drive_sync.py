@@ -161,6 +161,8 @@ def upload_public_clip(local_path: str, filename: str, folder_id: str | None = N
     Uploads a processed short/audiogram to Google Drive, sets public read permission,
     and returns a direct stream/download URL for Buffer API.
     """
+    if not config.GDRIVE_SERVICE_ACCOUNT_JSON:
+        return ""
     service = get_drive_service()
     target_folder = folder_id or config.GDRIVE_OUTPUT_FOLDER_ID or config.GDRIVE_EXISTING_FOLDER_ID
     
