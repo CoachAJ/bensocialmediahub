@@ -14,11 +14,12 @@ class PodcastEpisode(BaseModel):
     audio_url: str
     published: str
 
-PODCAST_FEEDS = {
-    "Pharmacist Ben's Bytes": config.RSS_BENS_BYTES,
-    "The Mineral Way": config.RSS_MINERAL_WAY,
-    "The Art of Aging Well": config.RSS_AGING_WELL,
-}
+def get_podcast_feeds() -> dict[str, str]:
+    return {
+        "Pharmacist Ben's Bytes": config.RSS_BENS_BYTES,
+        "The Mineral Way": config.RSS_MINERAL_WAY,
+        "The Art of Aging Well": config.RSS_AGING_WELL,
+    }
 
 def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpisode]:
     """
@@ -27,8 +28,9 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
     manifest = load_manifest()
     processed_episodes = set(manifest.get("podcast_episodes", []))
     new_episodes: list[PodcastEpisode] = []
+    feeds = get_podcast_feeds()
 
-    for show_name, feed_url in PODCAST_FEEDS.items():
+    for show_name, feed_url in feeds.items():
         if not feed_url or "placeholder" in feed_url:
             continue
         try:
