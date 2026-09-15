@@ -212,17 +212,83 @@ function finishRun() {
   runnerBadge.style.borderColor = 'rgba(0, 240, 255, 0.2)';
 }
 
-// Inline Quiz Preview interactive tester
-function testQuizClick(btn, isCorrect) {
-  const siblings = btn.parentElement.querySelectorAll('.inline-opt');
-  siblings.forEach(s => s.disabled = true);
-  if (isCorrect) {
-    btn.classList.add('correct');
-  } else {
-    btn.classList.add('incorrect');
-    siblings[1].classList.add('correct'); // B is correct in preview
+// Quiz Embed & Social Media Sharing Toolbar
+const quizSelector = document.getElementById('quiz-selector');
+const quizEmbedUrl = document.getElementById('quiz-embed-url');
+const quizLiveFrame = document.getElementById('quiz-live-frame');
+const btnCopyLink = document.getElementById('btn-copy-link');
+const btnCopyIframe = document.getElementById('btn-copy-iframe');
+const btnCopySocial = document.getElementById('btn-copy-social');
+const btnOpenQuizTab = document.getElementById('btn-open-quiz-tab');
+const copyStatus = document.getElementById('copy-status');
+
+function getFullQuizUrl(filename) {
+  const origin = window.location.origin.includes('localhost') || window.location.origin.startsWith('http')
+    ? window.location.origin
+    : 'https://pharmacistbensacademy.com';
+  return `${origin}/quizzes/${filename}`;
+}
+
+function updateQuizEmbedUI() {
+  if (!quizSelector || !quizEmbedUrl) return;
+  const selectedFile = quizSelector.value;
+  const fullUrl = getFullQuizUrl(selectedFile);
+  
+  quizEmbedUrl.value = fullUrl;
+  if (btnOpenQuizTab) {
+    btnOpenQuizTab.href = `quizzes/${selectedFile}`;
+  }
+  if (quizLiveFrame) {
+    quizLiveFrame.src = `quizzes/${selectedFile}`;
   }
 }
+
+function flashCopyStatus(msg) {
+  if (!copyStatus) return;
+  copyStatus.textContent = msg;
+  copyStatus.classList.add('success');
+  setTimeout(() => {
+    copyStatus.textContent = 'Ready to share';
+    copyStatus.classList.remove('success');
+  }, 2500);
+}
+
+if (quizSelector) {
+  quizSelector.addEventListener('change', updateQuizEmbedUI);
+}
+
+if (btnCopyLink) {
+  btnCopyLink.addEventListener('click', () => {
+    const url = quizEmbedUrl.value;
+    navigator.clipboard.writeText(url).then(() => {
+      flashCopyStatus('Link Copied!');
+    });
+  });
+}
+
+if (btnCopyIframe) {
+  btnCopyIframe.addEventListener('click', () => {
+    const url = quizEmbedUrl.value;
+    const iframeCode = `<iframe src="${url}" width="100%" height="520" frameborder="0" style="border-radius: 12px; max-width: 560px; margin: auto; display: block;"></iframe>`;
+    navigator.clipboard.writeText(iframeCode).then(() => {
+      flashCopyStatus('Iframe Code Copied!');
+    });
+  });
+}
+
+if (btnCopySocial) {
+  btnCopySocial.addEventListener('click', () => {
+    const url = quizEmbedUrl.value;
+    const selectedTitle = quizSelector.options[quizSelector.selectedIndex].text;
+    const socialText = `🧠 Pharmacist Ben's Health Mastery Challenge: "${selectedTitle}"\n\nTest your biological knowledge in this quick interactive challenge:\n👉 ${url}\n\n📞 Certified Health Coach Guidance & Orders: (855) 835-2777\nFull episode archives at https://pharmacistbensacademy.com`;
+    navigator.clipboard.writeText(socialText).then(() => {
+      flashCopyStatus('Social Post Copied!');
+    });
+  });
+}
+
+// Initialize Quiz URL on load
+updateQuizEmbedUI();
 
 // Event Listeners
 refreshBtn.addEventListener('click', fetchStats);
@@ -247,3 +313,4 @@ setInterval(fetchStats, 15000); // Poll stats every 15s
 const style = document.createElement('style');
 style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
 document.head.appendChild(style);
+

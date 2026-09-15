@@ -301,27 +301,58 @@
           <!-- Interactive Skool Quiz Module Preview -->
           <div class="quiz-preview-card">
             <div class="section-header">
-              <h3>Skool Community Quiz Embed Preview</h3>
+              <div>
+                <h3>Skool Community Quiz Embed & Social Preview</h3>
+                <p class="section-subtitle" style="font-size: 12px; color: var(--text-dim); margin-top: 3px;">Embed in Skool lessons or share directly across social media channels</p>
+              </div>
               <span class="badge-sub">AI Generated Module</span>
             </div>
-            <div class="quiz-preview-frame">
-              <div class="quiz-card-inline">
-                <span class="badge-quiz">Pharmacist Ben's Biology Challenge</span>
-                <div class="inline-quiz-q" id="preview-question">
-                  Why does Pharmacist Ben consider digestive integrity more foundational than isolated synthetic vitamin supplementation?
+
+            <!-- Share & Embed Toolbar -->
+            <div class="quiz-embed-toolbar">
+              <div class="quiz-select-row">
+                <label for="quiz-selector" class="quiz-select-label">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                  <span>Select Generated Quiz:</span>
+                </label>
+                <select id="quiz-selector" class="quiz-dropdown">
+                  <option value="1d4fa9ab9642_quiz.html">Cellular Degradation & Chronic Disease (The Mineral Way)</option>
+                  <option value="425570b40256_quiz.html">Digestive Integrity & Mineral Absorption (Ben's Bytes)</option>
+                  <option value="6c6d01a046cc_quiz.html">Selenium & Cellular Viral Defense (The Mineral Way)</option>
+                  <option value="6c85bb7549a4_quiz.html">Biochemistry vs. Epidemiology (The Art of Aging Well)</option>
+                  <option value="9965be020167_quiz.html">The Muscle-Melting Drug Trap (Ben's Bytes)</option>
+                </select>
+              </div>
+
+              <div class="embed-url-container">
+                <div class="embed-url-header">
+                  <span class="embed-label">Public Share & Embed Link:</span>
+                  <span id="copy-status" class="copy-status-pill">Ready to share</span>
                 </div>
-                <div class="inline-options-list">
-                  <button class="inline-opt" onclick="testQuizClick(this, false)">A) Synthetic vitamins are completely chemically inert in the bloodstream</button>
-                  <button class="inline-opt" onclick="testQuizClick(this, true)">B) Nutrients cannot be delivered to cells if intestinal mucosal barrier and bile flow are compromised</button>
-                  <button class="inline-opt" onclick="testQuizClick(this, false)">C) Digestion only affects carbohydrate breakdown, not cellular minerals</button>
-                </div>
-                <div class="inline-quiz-footer">
-                  <a href="https://pharmacistbensacademy.com" target="_blank">Full Archive & Academy &rarr; PharmacistBensAcademy.com</a>
-                  <div style="margin-top: 6px; font-size: 11.5px; color: #94a3b8;">
-                    Certified Health Coach Guidance & Orders: <a href="tel:8558352777" style="color: #38bdf8; font-weight: 700;">(855) 835-2777</a>
-                  </div>
+                <div class="embed-input-row">
+                  <input type="text" id="quiz-embed-url" readonly value="" spellcheck="false" />
+                  <button type="button" class="btn-embed-action" id="btn-copy-link" title="Copy public link to share on social media">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Copy Link</span>
+                  </button>
+                  <button type="button" class="btn-embed-action" id="btn-copy-iframe" title="Copy <iframe> code for Skool Classroom">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span>Copy Iframe</span>
+                  </button>
+                  <button type="button" class="btn-embed-action" id="btn-copy-social" title="Copy complete social media post text with CTA and hotline">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+                    <span>Copy Post</span>
+                  </button>
+                  <a id="btn-open-quiz-tab" href="#" target="_blank" class="btn-embed-action btn-open-tab" title="Open standalone quiz in new tab">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    <span>Open</span>
+                  </a>
                 </div>
               </div>
+            </div>
+
+            <div class="quiz-preview-frame">
+              <iframe id="quiz-live-frame" src="quizzes/1d4fa9ab9642_quiz.html" frameborder="0" style="width: 100%; min-height: 520px; border: none; border-radius: 12px; background: transparent;"></iframe>
             </div>
           </div>
         </div>
