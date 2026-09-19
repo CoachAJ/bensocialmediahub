@@ -120,11 +120,11 @@
 <body>
   <div class="quiz-card">
     <span class="badge">Pharmacist Ben's Health Challenge</span>
-    <div class="question" id="quiz-question">According to Pharmacist Ben, what is the true biological role of amyloid plaques found in the brain during Alzheimer's disease?</div>
+    <div class="question" id="quiz-question">According to Pharmacist Ben, what is the actual biological role of amyloid plaques in the brain?</div>
     <div class="options-grid" id="options-container"></div>
     <div class="explanation" id="explanation">
       <strong>Biological Insight:</strong>
-      <p id="explanation-text">Pharmacist Ben explains that amyloid is a patching and damage-control molecule formed when brain tissue suffers degeneration from toxins, hypoxia, or nutrient deficiencies, rather than being the primary cause of the disease.</p>
+      <p id="explanation-text">Pharmacist Ben explains that amyloid is a damage-control, patching-up molecule the body deploys in response to degeneration. Blaming amyloid for Alzheimer's is symptom-chasing; the true root cause is chronic cellular degeneration driven by nutrient deficiencies, toxicity, and poor circulation.</p>
     </div>
     <div class="cta-footer" id="cta-footer">
       <a href="https://pharmacistbensacademy.com" target="_blank" rel="noopener">
@@ -133,15 +133,39 @@
       <div style="margin-top: 10px; font-size: 12px; color: #94a3b8;">
         Certified Health Coach Guidance, Questions, or Orders: <strong style="color: #38bdf8;"><a href="tel:8558352777" style="color: #38bdf8; text-decoration: none;">(855) 835-2777</a></strong>
       </div>
+      <div style="margin-top: 14px; display: flex; justify-content: center;">
+        <button type="button" id="share-quiz-btn" style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 6px 14px; border-radius: 20px; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;" onclick="copyCurrentQuizUrl(this)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>
+          <span>Share This Quiz</span>
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
-    const options = ["They are toxic foreign pathogens that directly destroy healthy neurons.", "They are damage-control patching molecules produced in response to cellular degeneration.", "They are synthetic compounds caused exclusively by historical hormone injections.", "They are waste products caused solely by elevated blood sugar levels."];
+    const options = ["A toxic protein that directly initiates Alzheimer's disease", "A protective, patching-up mechanism responding to cellular damage", "A synthetic byproduct of pharmaceutical sleep aids", "An essential nutrient required for neurotransmitter synthesis"];
     const correctIdx = 1;
     const container = document.getElementById('options-container');
     const expBox = document.getElementById('explanation');
     const ctaFooter = document.getElementById('cta-footer');
+
+    function copyCurrentQuizUrl(btn) {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url).then(() => {
+        const span = btn.querySelector('span');
+        const orig = span.textContent;
+        span.textContent = 'Link Copied!';
+        btn.style.background = 'rgba(16, 185, 129, 0.25)';
+        btn.style.borderColor = '#10b981';
+        btn.style.color = '#34d399';
+        setTimeout(() => {
+          span.textContent = orig;
+          btn.style.background = 'rgba(56, 189, 248, 0.12)';
+          btn.style.borderColor = 'rgba(56, 189, 248, 0.3)';
+          btn.style.color = '#38bdf8';
+        }, 2000);
+      });
+    }
 
     options.forEach((opt, idx) => {
       const btn = document.createElement('button');
