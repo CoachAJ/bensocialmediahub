@@ -1,10 +1,42 @@
 import os
+import sys
 import json
+import shutil
 import subprocess
 import requests
 from src.config import config
 
 BUFFER_API_BASE = "https://api.bufferapp.com/1"
+
+def run_buffer_cli(subcommand: list[str], input_str: str | None = None, timeout: int = 30) -> tuple[int, str, str]:
+    """
+    Executes a Buffer CLI subcommand with robust cross-platform compatibility.
+    Handles Linux/POSIX (shell=False) vs Windows (.cmd batch wrappers).
+    """
+    token = config.BUFFER_ACCESS_TOKEN
+    env = os.environ.copy()
+    if token:
+        env["BUFFER_API_KEY"] = token
+        env["BUFFER_ACCESS_TOKEN"] = token
+
+    # Check if 'buffer' CLI is installed globally or in PATH
+    buffer_bin = shutil.which("buffer")
+    if buffer_bin:
+        cmd = [buffer_bin] + subcommand
+    else:
+        npx_bin = shutil.which("npx") or "npx"
+        cmd = [npx_bin, "--yes", "@bufferapp/cli"] + subcommand
+
+    is_win = sys.platform.startswith("win")
+    try:
+        if is_win:
+            res = subprocess.run(cmd, input=input_str, capture_output=True, text=True, env=env, timeout=timeout, shell=True)
+        else:
+            # On Linux/macOS, shell=False prevents /bin/sh -c argument truncation
+            res = subprocess.run(cmd, input=input_str, capture_output=True, text=True, env=env, timeout=timeout, shell=False)
+        return res.returncode, res.stdout, res.stderr
+    except Exception as e:
+        return 1, "", str(e)
 
 def get_buffer_profiles() -> list[dict]:
     """
@@ -16,17 +48,14 @@ def get_buffer_profiles() -> list[dict]:
         return []
 
     # 1. Try Buffer CLI
-    try:
-        env = os.environ.copy()
-        env["BUFFER_API_KEY"] = token
-        cmd = ["npx", "--yes", "@bufferapp/cli", "channels", "list", "--output", "json"]
-        res = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=15, shell=True)
-        if res.returncode == 0 and res.stdout.strip():
-            channels = json.loads(res.stdout)
+    retcode, stdout, stderr = run_buffer_cli(["channels", "list", "--output", "json"], timeout=15)
+    if retcode == 0 and stdout.strip():
+        try:
+            channels = json.loads(stdout)
             if isinstance(channels, list):
                 return [{"id": c.get("id"), "service": c.get("service"), "formatted_username": c.get("name")} for c in channels]
-    except Exception:
-        pass
+        except Exception:
+            pass
 
     # 2. Fallback to REST API
     url = f"{BUFFER_API_BASE}/profiles.json"
@@ -48,19 +77,18 @@ def get_channel_queue_count(profile_id: str) -> int:
     # 1. Try Buffer CLI with organization ID if available
     org_id = config.BUFFER_ORGANIZATION_ID
     if org_id:
-        try:
-            env = os.environ.copy()
-            env["BUFFER_API_KEY"] = token
-            cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "list", "--organization-id", org_id, "--fields", "items.id,items.channel.id,items.status", "--output", "json"]
-            res = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=15, shell=True)
-            if res.returncode == 0 and res.stdout.strip():
-                data = json.loads(res.stdout)
+        retcode, stdout, stderr = run_buffer_cli([
+            "posts", "list", "--organization-id", org_id,
+            "--fields", "items.id,items.channel.id,items.status", "--output", "json"
+        ], timeout=15)
+        if retcode == 0 and stdout.strip():
+            try:
+                data = json.loads(stdout)
                 items = data.get("items", [])
-                # Count items scheduled for this channel (only pending scheduled/sending count towards 10-post limit)
                 channel_posts = [p for p in items if (p.get("channel", {}).get("id") == profile_id or p.get("channelId") == profile_id) and p.get("status") in ["scheduled", "sending"]]
                 return len(channel_posts)
-        except Exception:
-            pass
+            except Exception:
+                pass
 
     # 2. Fallback to legacy REST API
     url = f"{BUFFER_API_BASE}/profiles/{profile_id}/updates/pending.json"
@@ -70,7 +98,7 @@ def get_channel_queue_count(profile_id: str) -> int:
         response.raise_for_status()
         data = response.json()
         return data.get("total", 0)
-    except Exception as e:
+    except Exception:
         return 0
 
 def can_schedule(profile_id: str, limit: int = 10) -> bool:
@@ -83,8 +111,6 @@ def schedule_via_buffer_cli(channel_id: str, text: str, media_url: str | None = 
     token = config.BUFFER_ACCESS_TOKEN
     if not token:
         return None
-    env = os.environ.copy()
-    env["BUFFER_API_KEY"] = token
     
     post_input = {
         "channelId": channel_id,
@@ -112,26 +138,28 @@ def schedule_via_buffer_cli(channel_id: str, text: str, media_url: str | None = 
             }
         }
 
-    cmd = ["npx", "--yes", "@bufferapp/cli", "posts", "create", "--input", "-", "--output", "json"]
-    try:
-        res = subprocess.run(cmd, input=json.dumps(post_input), capture_output=True, text=True, env=env, timeout=30, shell=True)
-        if res.returncode == 0 and res.stdout.strip():
-            raw = json.loads(res.stdout)
+    retcode, stdout, stderr = run_buffer_cli(["posts", "create", "--input", "-", "--output", "json"], input_str=json.dumps(post_input), timeout=30)
+    if retcode == 0 and stdout.strip():
+        try:
+            raw = json.loads(stdout)
             return raw.get("post", raw)
-        else:
-            notice = res.stderr.strip() or res.stdout.strip()
-            print(f"[Buffer CLI Notice] Direct queue attempt: {notice}")
-            # If automatic queue rejected, fallback to saving as draft
-            draft_input = dict(post_input)
-            draft_input["saveToDraft"] = True
-            draft_res = subprocess.run(cmd, input=json.dumps(draft_input), capture_output=True, text=True, env=env, timeout=30, shell=True)
-            if draft_res.returncode == 0 and draft_res.stdout.strip():
-                raw_draft = json.loads(draft_res.stdout)
+        except Exception:
+            pass
+    else:
+        notice = stderr.strip() or stdout.strip()
+        print(f"[Buffer CLI Notice] Direct queue attempt: {notice}")
+        # If automatic queue rejected, fallback to saving as draft
+        draft_input = dict(post_input)
+        draft_input["saveToDraft"] = True
+        d_ret, d_stdout, d_stderr = run_buffer_cli(["posts", "create", "--input", "-", "--output", "json"], input_str=json.dumps(draft_input), timeout=30)
+        if d_ret == 0 and d_stdout.strip():
+            try:
+                raw_draft = json.loads(d_stdout)
                 post_data = raw_draft.get("post", raw_draft)
                 print(f"[Buffer CLI] Saved post to drafts for channel {channel_id} (ID: {post_data.get('id')})")
                 return post_data
-    except Exception as e:
-        print(f"Buffer CLI scheduling attempt notice: {e}")
+            except Exception:
+                pass
     return None
 
 def schedule_buffer_post(
@@ -151,8 +179,8 @@ def schedule_buffer_post(
     # Try modern Buffer CLI for the first profile
     if profile_ids:
         cli_result = schedule_via_buffer_cli(profile_ids[0], text, media_url, platform_hint=platform_hint)
-        if cli_result:
-            return {"success": True, "cli": True, "updates": [{"id": cli_result.get("id", "cli_post")}]}
+        if cli_result and cli_result.get("id"):
+            return {"success": True, "cli": True, "updates": [{"id": cli_result.get("id")}]}
 
     # Fallback to REST API
     url = f"{BUFFER_API_BASE}/updates/create.json"

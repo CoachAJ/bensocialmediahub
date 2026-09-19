@@ -102,7 +102,8 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                     )
                     up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
                     log_event(now_str, file_name, "Drive Short (Video)", "Scheduled", up_id, config.WEBSITE_URL)
-                    short_scheduled = True
+                    if update.get("success"):
+                        short_scheduled = True
                 else:
                     log_progress("buffer_skip", f"Queue full (10 posts) for profile {pid}. Skipping dispatch.")
 
@@ -194,7 +195,8 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                         )
                         up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
                         log_event(now_str, f"{ep.title} [Clip {idx}]", "Podcast Audiogram (Motion)", "Scheduled", up_id, config.PODCASTS_URL)
-                        audiogram_scheduled = True
+                        if update.get("success"):
+                            audiogram_scheduled = True
                     else:
                         log_progress("buffer_skip", f"Queue full (10 posts) for profile {pid}. Skipping.")
 

@@ -36,6 +36,10 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install Buffer CLI Globally
+        run: |
+          npm install -g @bufferapp/cli
+
       - name: Install System FFmpeg & Fonts
         run: |
           sudo apt-get update
