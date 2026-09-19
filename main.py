@@ -82,11 +82,12 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 log_progress("ffmpeg_warn", f"Video rendering encountered an error: {e}. Proceeding with source clip.")
                 output_clip_path = local_raw_path
 
-            # Direct video download link for public Buffer ingestion
-            media_url = file.get("direct_url") or upload_public_clip(output_clip_path, f"ben_short_{file_id}.mp4")
-            log_progress("hosting", f"Direct video asset URL for Buffer: {media_url}")
+            # Upload newly branded, burned vertical short to GitHub Releases CDN
+            media_url = upload_public_clip(output_clip_path, f"ben_short_{file_id}.mp4") or file.get("direct_url")
+            log_progress("hosting", f"Direct video asset URL for Buffer (GitHub CDN): {media_url}")
 
             # Schedule to Buffer profiles (respecting 10-post queue cap)
+            short_scheduled = False
             for pid in target_profiles:
                 platform_type = profile_mapping.get(pid, "social")
                 if can_schedule(pid, limit=10):
@@ -101,12 +102,16 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                     )
                     up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
                     log_event(now_str, file_name, "Drive Short (Video)", "Scheduled", up_id, config.WEBSITE_URL)
+                    short_scheduled = True
                 else:
                     log_progress("buffer_skip", f"Queue full (10 posts) for profile {pid}. Skipping dispatch.")
 
-            manifest["existing_shorts"].append(file_id)
-            save_manifest(manifest)
-            log_progress("short_done", f"Completed short '{file_name}'. Manifest updated.")
+            if short_scheduled:
+                manifest["existing_shorts"].append(file_id)
+                save_manifest(manifest)
+                log_progress("short_done", f"Completed short '{file_name}'. Manifest updated.")
+            else:
+                log_progress("short_retry", f"Short '{file_name}' queue was skipped (profiles full or dry run). Will retry next run.")
 
     # ==========================================
     # TRACK 2: Podcast RSS Feeds (The 3 Shows)
@@ -128,7 +133,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 log_progress("audio_warn", f"Could not download audio stream: {e}. Skipping episode.")
                 continue
 
-            log_progress("gemini", "Analyzing episode audio with Gemini 2.5 Flash for golden nugget & Skool quiz...")
+            log_progress("gemini", "Analyzing episode audio with Gemini for golden nugget & Skool quiz...")
             try:
                 analysis = analyze_raw_media(local_audio_path)
             except Exception as e:
@@ -147,6 +152,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
             )
 
             # 2. Render Vertical 9:16 Audiogram Motion Video with Animated Waveform
+            audiogram_scheduled = False
             for idx, clip in enumerate(analysis.clips[:1]):
                 audiogram_path = f"output/audiograms/{safe_id}_clip_{idx}.mp4"
                 log_progress("ffmpeg", f"Rendering dynamic 9:16 vertical motion audiogram for '{clip.hook_headline}'...")
@@ -165,12 +171,12 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                     log_progress("ffmpeg_warn", f"Audiogram render failed: {e}")
                     continue
 
-                # Upload to Google Drive for public Buffer access
-                log_progress("hosting", "Uploading motion audiogram to Google Drive...")
+                # Upload to GitHub Releases CDN for public Buffer access
+                log_progress("hosting", "Publishing motion audiogram to GitHub CDN...")
                 try:
                     media_url = upload_public_clip(audiogram_path, f"audiogram_{safe_id}_{idx}.mp4")
                 except Exception as e:
-                    log_progress("hosting_warn", f"Could not upload audiogram to Drive: {e}")
+                    log_progress("hosting_warn", f"Could not publish audiogram to GitHub CDN: {e}")
                     media_url = None
 
                 # Dispatch to Buffer
@@ -188,12 +194,16 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                         )
                         up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
                         log_event(now_str, f"{ep.title} [Clip {idx}]", "Podcast Audiogram (Motion)", "Scheduled", up_id, config.PODCASTS_URL)
+                        audiogram_scheduled = True
                     else:
                         log_progress("buffer_skip", f"Queue full (10 posts) for profile {pid}. Skipping.")
 
-            manifest["podcast_episodes"].append(ep.episode_id)
-            save_manifest(manifest)
-            log_progress("podcast_done", f"Finished episode '{ep.title}'. Manifest saved.")
+            if audiogram_scheduled:
+                manifest["podcast_episodes"].append(ep.episode_id)
+                save_manifest(manifest)
+                log_progress("podcast_done", f"Finished episode '{ep.title}'. Manifest saved.")
+            else:
+                log_progress("podcast_retry", f"Episode '{ep.title}' will be retried on next run (audiogram not yet scheduled).")
 
     log_progress("complete", "Pipeline execution run finished successfully!")
 

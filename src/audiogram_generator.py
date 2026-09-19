@@ -1,6 +1,6 @@
 import os
 import subprocess
-from src.video_cutter import escape_ffmpeg_text, get_font_file, parse_time_to_seconds
+from src.video_cutter import escape_ffmpeg_text, get_font_file, parse_time_to_seconds, get_media_duration_seconds
 
 def render_audiogram_motion_video(
     audio_path: str,
@@ -18,8 +18,20 @@ def render_audiogram_motion_video(
     Optionally exports as an animated GIF.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    start_sec = parse_time_to_seconds(start_time)
-    duration = max(1.0, parse_time_to_seconds(end_time) - start_sec)
+    total_audio_sec = get_media_duration_seconds(audio_path)
+    
+    start_sec = parse_time_to_seconds(start_time, max_duration=total_audio_sec)
+    end_sec = parse_time_to_seconds(end_time, max_duration=total_audio_sec)
+    
+    # If Gemini proposed a start time past the available sample, adjust to a valid window
+    if total_audio_sec > 5 and start_sec >= (total_audio_sec - 5):
+        start_sec = max(0.0, total_audio_sec - 45.0)
+        end_sec = total_audio_sec
+
+    duration = max(3.0, end_sec - start_sec)
+    if total_audio_sec > 0:
+        duration = min(duration, total_audio_sec - start_sec)
+        duration = max(2.0, duration)
     
     clean_title = escape_ffmpeg_text(show_title)
     clean_quote = escape_ffmpeg_text(quote_hook)

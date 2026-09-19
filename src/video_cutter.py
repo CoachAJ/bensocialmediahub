@@ -3,13 +3,45 @@ import re
 import subprocess
 import sys
 
-def parse_time_to_seconds(time_str: str) -> float:
-    parts = list(map(float, str(time_str).strip().split(":")))
-    if len(parts) == 2:
-        return parts[0] * 60 + parts[1]
-    elif len(parts) == 3:
-        return parts[0] * 3600 + parts[1] * 60 + parts[2]
-    return float(parts[0])
+def get_media_duration_seconds(file_path: str) -> float:
+    """Returns the duration of an audio or video file in seconds using ffprobe."""
+    if not os.path.exists(file_path):
+        return 0.0
+    cmd = [
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        file_path
+    ]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if res.returncode == 0 and res.stdout.strip():
+            return float(res.stdout.strip())
+    except Exception:
+        pass
+    return 600.0  # Fallback to 10 minutes default
+
+def parse_time_to_seconds(time_str: str, max_duration: float | None = None) -> float:
+    """Parses timestamps like MM:SS, HH:MM:SS, or seconds into a safe float."""
+    if not time_str:
+        return 0.0
+    clean = str(time_str).strip()
+    match = re.search(r"(\d+):(\d+)(?::(\d+))?", clean)
+    if match:
+        groups = [g for g in match.groups() if g is not None]
+        if len(groups) == 2:
+            val = float(groups[0]) * 60 + float(groups[1])
+        elif len(groups) == 3:
+            val = float(groups[0]) * 3600 + float(groups[1]) * 60 + float(groups[2])
+        else:
+            val = float(groups[0])
+    else:
+        num_match = re.search(r"(\d+(?:\.\d+)?)", clean)
+        val = float(num_match.group(1)) if num_match else 0.0
+
+    if max_duration and max_duration > 0:
+        val = min(val, max_duration)
+    return max(0.0, val)
 
 def escape_ffmpeg_text(text: str) -> str:
     """Escapes special characters for FFmpeg drawtext filter."""

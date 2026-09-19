@@ -50,7 +50,9 @@ Conversion Architecture:
 
 import time
 
-CANDIDATE_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"]
+from src.video_cutter import get_media_duration_seconds
+
+CANDIDATE_MODELS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
 
 def call_gemini_with_fallback(client, contents, schema, temperature=0.2) -> str:
     """Tries models in order with retry on temporary 503 high demand spikes."""
@@ -82,11 +84,18 @@ def analyze_raw_media(file_path: str) -> LongFormAnalysis:
     client = get_gemini_client()
     uploaded_file = client.files.upload(file=file_path)
     
+    duration_sec = get_media_duration_seconds(file_path)
+    mins = int(duration_sec // 60)
+    secs = int(duration_sec % 60)
+    max_time_str = f"{mins:02d}:{secs:02d}"
+
     prompt = f"""
     {SYSTEM_EDITORIAL_RULES}
     Analyze this video/audio media from Pharmacist Ben's broadcast.
+    CRITICAL CONSTRAINT: This audio sample is exactly {max_time_str} ({int(duration_sec)} seconds) in length.
+    All segment clip proposals MUST have start_time and end_time strictly between 00:00 and {max_time_str}. Do NOT propose timestamps beyond {max_time_str}.
     1. Identify 1 to 2 distinct, highly engaging 30-60 second segments focused on root-cause biology, cellular health, or nutrition.
-    2. For each segment, provide exact start and end timestamps (MM:SS), an on-screen hook headline, a burned visual CTA banner directing to PharmacistBensAcademy.com, and platform-tailored copy.
+    2. For each segment, provide exact start and end timestamps (format MM:SS, strictly between 00:00 and {max_time_str}), an on-screen hook headline, a burned visual CTA banner directing to PharmacistBensAcademy.com, and platform-tailored copy.
     3. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.
     """
     

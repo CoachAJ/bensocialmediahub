@@ -58,6 +58,8 @@ jobs:
           RSS_BENS_BYTES: ${{ secrets.RSS_BENS_BYTES }}
           RSS_MINERAL_WAY: ${{ secrets.RSS_MINERAL_WAY }}
           RSS_AGING_WELL: ${{ secrets.RSS_AGING_WELL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           HEALTH_COACH_PHONE: ${{ secrets.HEALTH_COACH_PHONE || '(855) 835-2777' }}
         run: |
           MODE="${{ inputs.mode || 'all' }}"
@@ -67,5 +69,5 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/processed.json output/quizzes/
+          git add data/processed.json output/quizzes/ input_shorts/
           git diff --quiet && git diff --staged --quiet || (git commit -m "Auto: Update processed manifest & quiz embeds" && git push)

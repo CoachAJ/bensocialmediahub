@@ -78,69 +78,67 @@ def save_manifest(manifest: dict):
     with open(config.MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
+from src.github_hosting import upload_to_github_release
+
 def fetch_unprocessed_files(folder_id: str, manifest_key: str) -> list[dict]:
-    if not folder_id:
-        return []
     manifest = load_manifest()
     processed_ids = set(manifest.get(manifest_key, []))
-
-    # 1. Try authenticated Google Drive API only if service account is explicitly configured
-    if config.GDRIVE_SERVICE_ACCOUNT_JSON:
-        try:
-            service = get_drive_service()
-            query = f"'{folder_id}' in parents and trashed = false"
-            results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
-            items = results.get("files", [])
-            return [item for item in items if item["id"] not in processed_ids]
-        except Exception as e:
-            print(f"[Drive Sync] Service account note: {e}")
-
-    # 2. Fall back to downloading directly from public shared Google Drive folder link
-    print(f"[Drive Sync] Using public shared Drive folder sync (Zero credentials needed)...")
-    import gdown
-    folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
-    local_dir = "tmp/shared_drive"
-
-    # Map real Google Drive file IDs directly from folder metadata
     items = []
-    try:
-        remote_files = gdown.download_folder(url=folder_url, skip_download=True, quiet=True)
-        if remote_files:
-            for rf in remote_files:
-                fname = os.path.basename(rf.path)
-                if fname.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                    real_id = rf.id
-                    direct_url = f"https://drive.google.com/uc?export=download&id={real_id}"
-                    # Check if locally cached
-                    local_path = None
-                    for search_dir in [local_dir, "tmp/test_download", "tmp/raw_shorts"]:
-                        cand = os.path.join(search_dir, fname)
-                        if os.path.exists(cand):
-                            local_path = cand
-                            break
-                    items.append({
-                        "id": real_id,
-                        "name": fname,
-                        "direct_url": direct_url,
-                        "local_path": local_path
-                    })
-    except Exception as e:
-        print(f"[Drive Sync] Metadata fetch note: {e}")
 
-    # Fallback to local files if remote listing had an issue
-    if not items:
-        for search_dir in [local_dir, "tmp/test_download", "tmp/raw_shorts"]:
-            if os.path.exists(search_dir):
-                for f in os.listdir(search_dir):
-                    if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
-                        direct_url = f"https://drive.google.com/uc?export=download&id={f}"
-                        if not any(it["name"] == f for it in items):
-                            items.append({
-                                "id": f,
-                                "name": f,
-                                "direct_url": direct_url,
-                                "local_path": os.path.join(search_dir, f)
-                            })
+    # 1. Discover local input shorts first (Zero-Google Drive direct upload folder)
+    input_dirs = ["input_shorts", "tmp/raw_shorts", "tmp/shared_drive", "tmp/test_download"]
+    for search_dir in input_dirs:
+        if os.path.exists(search_dir):
+            for f in os.listdir(search_dir):
+                if f.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                    file_path = os.path.join(search_dir, f)
+                    if not any(it["name"] == f for it in items):
+                        items.append({
+                            "id": f,
+                            "name": f,
+                            "direct_url": "", # Will be uploaded to GitHub Releases CDN when rendered
+                            "local_path": file_path
+                        })
+
+    # 2. Check remote Google Drive folder if configured and needed
+    if folder_id:
+        if config.GDRIVE_SERVICE_ACCOUNT_JSON:
+            try:
+                service = get_drive_service()
+                query = f"'{folder_id}' in parents and trashed = false"
+                results = service.files().list(q=query, fields="files(id, name, mimeType)").execute()
+                drive_files = results.get("files", [])
+                for df in drive_files:
+                    if not any(it["id"] == df["id"] or it["name"] == df["name"] for it in items):
+                        items.append({
+                            "id": df["id"],
+                            "name": df["name"],
+                            "direct_url": f"https://drive.google.com/uc?export=download&id={df['id']}",
+                            "local_path": None
+                        })
+            except Exception as e:
+                print(f"[Drive Sync] Service account note: {e}")
+        else:
+            # Public shared Drive folder sync
+            try:
+                import gdown
+                folder_url = f"https://drive.google.com/drive/folders/{folder_id}?usp=sharing"
+                remote_files = gdown.download_folder(url=folder_url, skip_download=True, quiet=True)
+                if remote_files:
+                    for rf in remote_files:
+                        fname = os.path.basename(rf.path)
+                        if fname.lower().endswith((".mp4", ".mov", ".m4v", ".webm")):
+                            real_id = rf.id
+                            if not any(it["id"] == real_id or it["name"] == fname for it in items):
+                                items.append({
+                                    "id": real_id,
+                                    "name": fname,
+                                    "direct_url": f"https://drive.google.com/uc?export=download&id={real_id}",
+                                    "local_path": None
+                                })
+            except Exception as e:
+                print(f"[Drive Sync] Public Drive sync note: {e}")
+
     unprocessed = [item for item in items if item["id"] not in processed_ids and item["name"] not in processed_ids]
     return unprocessed
 
@@ -148,7 +146,8 @@ def download_file(file_id: str, output_path: str, item_meta: dict | None = None)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     if item_meta and item_meta.get("local_path") and os.path.exists(item_meta["local_path"]):
         import shutil
-        shutil.copy2(item_meta["local_path"], output_path)
+        if os.path.abspath(item_meta["local_path"]) != os.path.abspath(output_path):
+            shutil.copy2(item_meta["local_path"], output_path)
         return
 
     try:
@@ -165,38 +164,8 @@ def download_file(file_id: str, output_path: str, item_meta: dict | None = None)
 
 def upload_public_clip(local_path: str, filename: str, folder_id: str | None = None) -> str:
     """
-    Uploads a processed short/audiogram to Google Drive, sets public read permission,
-    and returns a direct stream/download URL for Buffer API.
+    Uploads a processed short or audiogram to the GitHub Releases CDN,
+    returning a direct public download URL for Buffer.
+    Keeps Google Drive 100% clean and free of generated clips.
     """
-    if not config.GDRIVE_SERVICE_ACCOUNT_JSON:
-        return ""
-    service = get_drive_service()
-    target_folder = folder_id or config.GDRIVE_OUTPUT_FOLDER_ID or config.GDRIVE_EXISTING_FOLDER_ID
-    
-    file_metadata = {"name": filename}
-    if target_folder:
-        file_metadata["parents"] = [target_folder]
-        
-    mime_type = "video/mp4" if filename.lower().endswith(".mp4") else "image/gif"
-    media = MediaFileUpload(local_path, mimetype=mime_type, resumable=True)
-    
-    uploaded_file = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        fields="id, webContentLink, webViewLink"
-    ).execute()
-    
-    file_id = uploaded_file.get("id")
-    
-    # Make the file publicly accessible so Buffer can fetch the video stream
-    try:
-        service.permissions().create(
-            fileId=file_id,
-            body={"type": "anyone", "role": "reader"}
-        ).execute()
-    except Exception as e:
-        print(f"Warning: could not set public permission on Drive file {file_id}: {e}")
-        
-    # Direct download link for Buffer
-    direct_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    return direct_url
+    return upload_to_github_release(local_path, filename)
