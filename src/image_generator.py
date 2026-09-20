@@ -5,18 +5,19 @@ from src.config import config
 
 def generate_gemini_image(prompt: str, output_path: str) -> str | None:
     """
-    Attempts to generate an image via Gemini multimodal models (e.g. gemini-2.5-flash-image).
-    Works automatically when the API key has image generation quota enabled.
+    Attempts to generate an image via Gemini multimodal models (e.g. gemini-3.1-flash-image).
+    Works automatically when the API key has image generation quota / billing enabled.
     """
     if not config.GEMINI_API_KEY or not prompt:
         return None
     try:
-        client = genai.Client(api_key=config.GEMINI_API_KEY)
-        for model_name in ["gemini-2.5-flash-image", "gemini-3.1-flash-image"]:
+        # Use short timeout so quota limit 0 on free tier fails immediately to fallback
+        client = genai.Client(api_key=config.GEMINI_API_KEY, http_options=dict(timeout=6000))
+        for model_name in ["gemini-3.1-flash-image", "gemini-2.5-flash-image"]:
             try:
                 resp = client.models.generate_content(
                     model=model_name,
-                    contents=f"High quality, realistic scientific illustration, clean modern visual: {prompt}"
+                    contents=f"Realistic 3D biomedical scientific illustration, highly detailed, dark studio background: {prompt}"
                 )
                 if resp.candidates and resp.candidates[0].content:
                     for part in resp.candidates[0].content.parts:
@@ -26,9 +27,10 @@ def generate_gemini_image(prompt: str, output_path: str) -> str | None:
                                 f.write(part.inline_data.data)
                             return output_path
             except Exception:
-                continue
+                # If model is unavailable or quota limit 0, break fast to fallback
+                break
     except Exception as e:
-        print(f"Gemini image generation attempt notice: {e}")
+        print(f"Gemini image generation notice: {e}")
     return None
 
 def fetch_wikimedia_scientific_image(query: str, output_path: str) -> str | None:

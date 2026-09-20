@@ -194,8 +194,8 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                         output_path=topic_img_path,
                         fallback_image=chosen_show_image_path
                     )
-                    badge_label = "PHARMACIST BEN | HEALTH DEEP DIVE"
-                    badge_color = "0x10b981"  # Emerald green for topical deep dive
+                    badge_label = f"PHARMACIST BEN | {ep.podcast_name}"
+                    badge_color = "0x38bdf8"  # Cyan border & badge accent
                     style_label = "Gemini Topic Illustration"
                 else:
                     log_progress("image_show", f"Using show artwork for '{ep.podcast_name}'...")
@@ -267,9 +267,9 @@ if __name__ == "__main__":
     parser.add_argument("--max", type=int, default=2, help="Max items per source to process")
     parser.add_argument(
         "--style",
-        choices=["alternate", "show", "topic"],
-        default="alternate",
-        help="Visual imagery style for audiograms: 'alternate' (alternates show art & topic art), 'show' (always show art), 'topic' (always Gemini topic art)"
+        choices=["topic", "alternate", "show"],
+        default="topic",
+        help="Visual imagery style for audiograms: 'topic' (content-relevant original image for each post, default), 'alternate' (alternates show art & topic art), 'show' (always show art)"
     )
     args = parser.parse_args()
 
