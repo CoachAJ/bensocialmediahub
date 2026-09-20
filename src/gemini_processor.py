@@ -17,6 +17,14 @@ class ClipProposal(BaseModel):
     caption_tiktok: str = Field(description="Punchy TikTok caption with relevant hashtags and link-in-bio prompt")
     caption_instagram: str = Field(description="Educational Instagram caption with biological value, hashtags, and link-in-bio prompt")
     post_x: str = Field(description="Concise X/Twitter post under 250 characters including direct link to pharmacistbensacademy.com/podcasts")
+    visual_concept_prompt: str = Field(
+        default="",
+        description="A vivid, detailed image prompt depicting the medical, biological, or physiological concept discussed in this clip (e.g. '3D biomedical render of cellular mitochondria producing ATP, dark background, luminous accents')"
+    )
+    topic_search_keywords: str = Field(
+        default="",
+        description="2-4 concise search keywords for this biological topic (e.g. 'mitochondria cellular energy' or 'lymphatic system anatomy')"
+    )
 
 class LongFormAnalysis(BaseModel):
     episode_core_concept: str
@@ -96,7 +104,8 @@ def analyze_raw_media(file_path: str) -> LongFormAnalysis:
     All segment clip proposals MUST have start_time and end_time strictly between 00:00 and {max_time_str}. Do NOT propose timestamps beyond {max_time_str}.
     1. Identify 1 to 2 distinct, highly engaging 30-60 second segments focused on root-cause biology, cellular health, or nutrition.
     2. For each segment, provide exact start and end timestamps (format MM:SS, strictly between 00:00 and {max_time_str}), an on-screen hook headline, a burned visual CTA banner directing to PharmacistBensAcademy.com, and platform-tailored copy.
-    3. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.
+    3. For each segment, create a vivid `visual_concept_prompt` (depicting the physiological/cellular concept in 3D scientific art style) and 2-4 `topic_search_keywords` (e.g., "human lymphatic system" or "mitochondria ATP").
+    4. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.
     """
     
     text_resp = call_gemini_with_fallback(client, [uploaded_file, prompt], LongFormAnalysis, temperature=0.2)

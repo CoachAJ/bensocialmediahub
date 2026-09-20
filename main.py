@@ -21,6 +21,7 @@ from src.rss_ingest import (
     download_podcast_audio_sample,
     download_podcast_image
 )
+from src.image_generator import generate_clip_topic_image
 from src.buffer_publisher import (
     get_buffer_profiles,
     can_schedule,
@@ -34,10 +35,11 @@ def log_progress(stage: str, message: str):
     ts = datetime.datetime.now().strftime("%H:%M:%S")
     print(f"[{ts}] [{stage.upper()}] {message}", flush=True)
 
-def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
-    log_progress("init", f"Starting Pharmacist Ben Promotion Engine in '{mode}' mode...")
+def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style: str = "alternate"):
+    log_progress("init", f"Starting Pharmacist Ben Promotion Engine in '{mode}' mode (Visual Style: {visual_style})...")
     manifest = load_manifest()
     now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    style_counter = manifest.get("visual_style_counter", 0)
 
     # Discover connected Buffer profiles and their platforms
     profiles = get_buffer_profiles()
@@ -156,22 +158,53 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 output_path=quiz_path
             )
 
-            # 2. Render Vertical 9:16 Audiogram Motion Video with Animated Waveform & Visual Artwork
-            local_image_path = f"tmp/images/{safe_id}.jpg"
-            chosen_image_path = None
+            # 2. Render Vertical 9:16 Audiogram Motion Video with Alternating Visual Imagery
+            local_show_image_path = f"tmp/images/{safe_id}_show.jpg"
+            chosen_show_image_path = None
             if ep.image_url:
                 log_progress("image_dl", f"Downloading cover artwork for '{ep.title}'...")
-                downloaded_img = download_podcast_image(ep.image_url, local_image_path)
+                downloaded_img = download_podcast_image(ep.image_url, local_show_image_path)
                 if downloaded_img and os.path.exists(downloaded_img):
-                    chosen_image_path = downloaded_img
+                    chosen_show_image_path = downloaded_img
 
-            if not chosen_image_path and os.path.exists("assets/pharmacist_ben.jpg"):
-                chosen_image_path = "assets/pharmacist_ben.jpg"
+            if not chosen_show_image_path and os.path.exists("assets/pharmacist_ben.jpg"):
+                chosen_show_image_path = "assets/pharmacist_ben.jpg"
 
             audiogram_scheduled = False
             for idx, clip in enumerate(analysis.clips[:1]):
                 audiogram_path = f"output/audiograms/{safe_id}_clip_{idx}.mp4"
-                log_progress("ffmpeg", f"Rendering dynamic 9:16 vertical motion audiogram for '{clip.hook_headline}' with show imagery...")
+                
+                # Determine alternating visual style:
+                # Even counter: Show artwork / brand portrait
+                # Odd counter: Gemini-crafted topic illustration
+                current_style_idx = style_counter + idx
+                if visual_style == "show":
+                    is_topic_style = False
+                elif visual_style == "topic":
+                    is_topic_style = True
+                else:
+                    is_topic_style = (current_style_idx % 2 == 1)
+
+                if is_topic_style:
+                    log_progress("image_ai", f"Generating Gemini topic visual for '{clip.hook_headline}'...")
+                    topic_img_path = f"tmp/images/{safe_id}_topic_{idx}.png"
+                    chosen_image_path = generate_clip_topic_image(
+                        prompt=clip.visual_concept_prompt or clip.hook_headline,
+                        keywords=clip.topic_search_keywords or clip.hook_headline,
+                        output_path=topic_img_path,
+                        fallback_image=chosen_show_image_path
+                    )
+                    badge_label = "PHARMACIST BEN | HEALTH DEEP DIVE"
+                    badge_color = "0x10b981"  # Emerald green for topical deep dive
+                    style_label = "Gemini Topic Illustration"
+                else:
+                    log_progress("image_show", f"Using show artwork for '{ep.podcast_name}'...")
+                    chosen_image_path = chosen_show_image_path
+                    badge_label = f"PHARMACIST BEN | {ep.podcast_name}"
+                    badge_color = "0x38bdf8"  # Electric cyan for show cover art
+                    style_label = "Show Cover Artwork"
+
+                log_progress("ffmpeg", f"Rendering 9:16 audiogram for '{clip.hook_headline}' ({style_label})...")
                 try:
                     render_audiogram_motion_video(
                         audio_path=local_audio_path,
@@ -182,6 +215,8 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                         cta_text="Full Archive @ PharmacistBensAcademy.com",
                         output_path=audiogram_path,
                         image_path=chosen_image_path,
+                        badge_label=badge_label,
+                        badge_color=badge_color,
                         output_gif=False
                     )
                 except Exception as e:
@@ -189,7 +224,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                     continue
 
                 # Upload to GitHub Releases CDN for public Buffer access
-                log_progress("hosting", "Publishing motion audiogram to GitHub CDN...")
+                log_progress("hosting", f"Publishing {style_label} audiogram to GitHub CDN...")
                 try:
                     media_url = upload_public_clip(audiogram_path, f"audiogram_{safe_id}_{idx}.mp4")
                 except Exception as e:
@@ -200,7 +235,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 for pid in target_profiles:
                     platform_type = profile_mapping.get(pid, "social")
                     if can_schedule(pid, limit=10):
-                        log_progress("buffer_dispatch", f"Queueing podcast audiogram to Buffer ({platform_type})...")
+                        log_progress("buffer_dispatch", f"Queueing podcast audiogram ({style_label}) to Buffer ({platform_type})...")
                         update = dispatch_platform_post(
                             profile_id=pid,
                             platform_hint=platform_type,
@@ -210,7 +245,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                             media_url=media_url
                         )
                         up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
-                        log_event(now_str, f"{ep.title} [Clip {idx}]", "Podcast Audiogram (Motion)", "Scheduled", up_id, config.PODCASTS_URL)
+                        log_event(now_str, f"{ep.title} [Clip {idx}]", f"Podcast Audiogram ({style_label})", "Scheduled", up_id, config.PODCASTS_URL)
                         if update.get("success"):
                             audiogram_scheduled = True
                     else:
@@ -218,8 +253,9 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
 
             if audiogram_scheduled:
                 manifest["podcast_episodes"].append(ep.episode_id)
+                manifest["visual_style_counter"] = style_counter + 1
                 save_manifest(manifest)
-                log_progress("podcast_done", f"Finished episode '{ep.title}'. Manifest saved.")
+                log_progress("podcast_done", f"Finished episode '{ep.title}'. Manifest saved (next style: {'Show Cover Art' if (style_counter + 1) % 2 == 0 else 'Gemini Topic Art'}).")
             else:
                 log_progress("podcast_retry", f"Episode '{ep.title}' will be retried on next run (audiogram not yet scheduled).")
 
@@ -229,6 +265,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pharmacist Ben Promotion Engine Orchestrator")
     parser.add_argument("--mode", choices=["all", "shorts", "podcasts", "dry-run"], default="all", help="Execution mode")
     parser.add_argument("--max", type=int, default=2, help="Max items per source to process")
+    parser.add_argument(
+        "--style",
+        choices=["alternate", "show", "topic"],
+        default="alternate",
+        help="Visual imagery style for audiograms: 'alternate' (alternates show art & topic art), 'show' (always show art), 'topic' (always Gemini topic art)"
+    )
     args = parser.parse_args()
 
-    run_pipeline(mode=args.mode, max_items_per_source=args.max)
+    run_pipeline(mode=args.mode, max_items_per_source=args.max, visual_style=args.style)

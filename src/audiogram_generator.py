@@ -11,13 +11,15 @@ def render_audiogram_motion_video(
     cta_text: str,
     output_path: str,
     image_path: str | None = None,
+    badge_label: str | None = None,
+    badge_color: str = "0x38bdf8",
     output_gif: bool = False
 ):
     """
     Takes an audio episode segment and generates a 1080x1920 (9:16) vertical motion video.
     If image_path is provided:
-      1. Renders an ambient blurred & darkened background from the cover art / portrait.
-      2. Displays a sharp, framed cover art / portrait card in the upper-center.
+      1. Renders an ambient blurred & darkened background from the image.
+      2. Displays a sharp, framed artwork/topic card in the upper-center.
       3. Overlays show badge, bold quote hook, dynamic audio waveform, and CTA banner.
     If image_path is None or missing, falls back to a clean modern dark slate background.
     """
@@ -40,15 +42,16 @@ def render_audiogram_motion_video(
     clean_title = escape_ffmpeg_text(show_title)
     clean_quote = escape_ffmpeg_text(quote_hook)
     clean_cta = escape_ffmpeg_text(cta_text)
+    header_text = escape_ffmpeg_text(badge_label) if badge_label else f"PHARMACIST BEN | {clean_title}"
     font_path = get_font_file()
     font_arg = f":fontfile='{font_path}'" if font_path else ""
 
     has_valid_image = bool(image_path and os.path.exists(image_path) and os.path.getsize(image_path) > 500)
 
     if has_valid_image:
-        # Multi-layer layout with cover artwork:
+        # Multi-layer layout with artwork/topic illustration:
         # 1. Ambient blurred background: scale/crop image to 1080x1920, heavy boxblur, darkened tint
-        # 2. Centered crisp image card (620x620) with glowing cyan border
+        # 2. Centered crisp image card (620x620) with glowing border
         # 3. Header badge pill at y=170
         # 4. Central quote text at y=980
         # 5. Live animated audio waveform at y=1240
@@ -56,10 +59,10 @@ def render_audiogram_motion_video(
         filter_complex = (
             "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
             "boxblur=25:5,drawbox=x=0:y=0:w=1080:h=1920:color=black@0.65:t=fill[ambient];"
-            "[1:v]scale=620:620:force_original_aspect_ratio=increase,crop=620:620,"
-            "pad=636:636:8:8:color=0x38bdf8@0.9[card];"
+            f"[1:v]scale=620:620:force_original_aspect_ratio=increase,crop=620:620,"
+            f"pad=636:636:8:8:color={badge_color}@0.9[card];"
             "[ambient][card]overlay=(W-w)/2:270[bg0];"
-            f"[bg0]drawtext=text='PHARMACIST BEN | {clean_title}'{font_arg}:fontcolor=0x38bdf8:fontsize=34:box=1:"
+            f"[bg0]drawtext=text='{header_text}'{font_arg}:fontcolor={badge_color}:fontsize=34:box=1:"
             "boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=170[bg1];"
             f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=46:box=1:"
             "boxcolor=black@0.7:boxborderw=14:x=(w-text_w)/2:y=980[bg2];"
