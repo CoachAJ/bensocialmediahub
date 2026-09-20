@@ -13,6 +13,7 @@ class PodcastEpisode(BaseModel):
     summary: str
     audio_url: str
     published: str
+    image_url: str | None = None
 
 def get_podcast_feeds() -> dict[str, str]:
     return {
@@ -24,6 +25,7 @@ def get_podcast_feeds() -> dict[str, str]:
 def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpisode]:
     """
     Fetches the latest unprocessed episodes from the 3 podcast RSS feeds.
+    Extracts show/episode artwork URLs alongside the audio streams.
     """
     manifest = load_manifest()
     processed_episodes = set(manifest.get("podcast_episodes", []))
@@ -36,6 +38,22 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
         try:
             feed = feedparser.parse(feed_url)
             count = 0
+            
+            # Extract channel/show-level cover art URL
+            show_image_url = None
+            feed_img = feed.feed.get("image", {})
+            if isinstance(feed_img, dict):
+                show_image_url = feed_img.get("href")
+            elif isinstance(feed_img, str) and feed_img.startswith("http"):
+                show_image_url = feed_img
+
+            if not show_image_url and feed.feed.get("itunes_image"):
+                itunes_img = feed.feed.get("itunes_image")
+                if isinstance(itunes_img, dict):
+                    show_image_url = itunes_img.get("href")
+                elif isinstance(itunes_img, str) and itunes_img.startswith("http"):
+                    show_image_url = itunes_img
+
             for entry in feed.entries:
                 ep_id = entry.get("id") or entry.get("link") or entry.get("title")
                 if not ep_id or ep_id in processed_episodes:
@@ -55,6 +73,23 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
                             audio_url = link.get("href")
                             break
 
+                # Extract episode-specific artwork or fallback to show-level artwork
+                ep_image_url = None
+                if entry.get("image"):
+                    img_data = entry.get("image")
+                    if isinstance(img_data, dict):
+                        ep_image_url = img_data.get("href")
+                    elif isinstance(img_data, str) and img_data.startswith("http"):
+                        ep_image_url = img_data
+                if not ep_image_url and entry.get("itunes_image"):
+                    itunes_img = entry.get("itunes_image")
+                    if isinstance(itunes_img, dict):
+                        ep_image_url = itunes_img.get("href")
+                    elif isinstance(itunes_img, str) and itunes_img.startswith("http"):
+                        ep_image_url = itunes_img
+
+                final_image_url = ep_image_url or show_image_url
+
                 if audio_url:
                     new_episodes.append(PodcastEpisode(
                         podcast_name=show_name,
@@ -62,7 +97,8 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
                         title=entry.get("title", "Untitled Episode"),
                         summary=entry.get("summary", "")[:300],
                         audio_url=audio_url,
-                        published=entry.get("published", "")
+                        published=entry.get("published", ""),
+                        image_url=final_image_url
                     ))
                     count += 1
                     if count >= max_per_feed:
@@ -87,3 +123,21 @@ def download_podcast_audio_sample(audio_url: str, output_path: str, max_bytes: i
                 downloaded += len(chunk)
                 if downloaded >= max_bytes:
                     break
+
+def download_podcast_image(image_url: str, output_path: str) -> str | None:
+    """
+    Downloads podcast episode or show cover art, caching it locally for video compositing.
+    """
+    if not image_url:
+        return None
+    try:
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        resp = requests.get(image_url, headers=headers, timeout=20)
+        if resp.status_code == 200 and len(resp.content) > 500:
+            with open(output_path, "wb") as f:
+                f.write(resp.content)
+            return output_path
+    except Exception as e:
+        print(f"Warning: Could not download image {image_url}: {e}")
+    return None

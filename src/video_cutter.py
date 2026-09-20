@@ -49,9 +49,12 @@ def escape_ffmpeg_text(text: str) -> str:
         return ""
     # Remove newlines
     text = text.replace("\r", " ").replace("\n", " ")
-    # Escape backslashes, colons, single quotes, and percent signs
+    # Replace straight apostrophes with typographic apostrophes to prevent string termination
+    text = text.replace("'", "’")
+    # Replace double quotes
+    text = text.replace('"', "”")
+    # Escape backslashes, colons, and percent signs
     text = text.replace("\\", "\\\\")
-    text = text.replace("'", "'\\''")
     text = text.replace(":", "\\:")
     text = text.replace("%", "\\%")
     return text.strip()

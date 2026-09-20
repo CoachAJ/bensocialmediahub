@@ -16,7 +16,11 @@ from src.gemini_processor import (
 )
 from src.video_cutter import render_vertical_short
 from src.audiogram_generator import render_audiogram_motion_video
-from src.rss_ingest import fetch_unprocessed_podcast_episodes, download_podcast_audio_sample
+from src.rss_ingest import (
+    fetch_unprocessed_podcast_episodes,
+    download_podcast_audio_sample,
+    download_podcast_image
+)
 from src.buffer_publisher import (
     get_buffer_profiles,
     can_schedule,
@@ -152,11 +156,22 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                 output_path=quiz_path
             )
 
-            # 2. Render Vertical 9:16 Audiogram Motion Video with Animated Waveform
+            # 2. Render Vertical 9:16 Audiogram Motion Video with Animated Waveform & Visual Artwork
+            local_image_path = f"tmp/images/{safe_id}.jpg"
+            chosen_image_path = None
+            if ep.image_url:
+                log_progress("image_dl", f"Downloading cover artwork for '{ep.title}'...")
+                downloaded_img = download_podcast_image(ep.image_url, local_image_path)
+                if downloaded_img and os.path.exists(downloaded_img):
+                    chosen_image_path = downloaded_img
+
+            if not chosen_image_path and os.path.exists("assets/pharmacist_ben.jpg"):
+                chosen_image_path = "assets/pharmacist_ben.jpg"
+
             audiogram_scheduled = False
             for idx, clip in enumerate(analysis.clips[:1]):
                 audiogram_path = f"output/audiograms/{safe_id}_clip_{idx}.mp4"
-                log_progress("ffmpeg", f"Rendering dynamic 9:16 vertical motion audiogram for '{clip.hook_headline}'...")
+                log_progress("ffmpeg", f"Rendering dynamic 9:16 vertical motion audiogram for '{clip.hook_headline}' with show imagery...")
                 try:
                     render_audiogram_motion_video(
                         audio_path=local_audio_path,
@@ -166,6 +181,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2):
                         quote_hook=clip.hook_headline,
                         cta_text="Full Archive @ PharmacistBensAcademy.com",
                         output_path=audiogram_path,
+                        image_path=chosen_image_path,
                         output_gif=False
                     )
                 except Exception as e:

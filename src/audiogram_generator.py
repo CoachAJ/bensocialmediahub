@@ -10,12 +10,16 @@ def render_audiogram_motion_video(
     quote_hook: str,
     cta_text: str,
     output_path: str,
+    image_path: str | None = None,
     output_gif: bool = False
 ):
     """
-    Takes an audio episode segment and generates a 1080x1920 (9:16) vertical motion video
-    featuring a live animated audio waveform, show badge, quote hook, and CTA banner.
-    Optionally exports as an animated GIF.
+    Takes an audio episode segment and generates a 1080x1920 (9:16) vertical motion video.
+    If image_path is provided:
+      1. Renders an ambient blurred & darkened background from the cover art / portrait.
+      2. Displays a sharp, framed cover art / portrait card in the upper-center.
+      3. Overlays show badge, bold quote hook, dynamic audio waveform, and CTA banner.
+    If image_path is None or missing, falls back to a clean modern dark slate background.
     """
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     total_audio_sec = get_media_duration_seconds(audio_path)
@@ -39,43 +43,71 @@ def render_audiogram_motion_video(
     font_path = get_font_file()
     font_arg = f":fontfile='{font_path}'" if font_path else ""
 
-    # Complex filter:
-    # 1. Generate dark background: color=c=#0f172a:s=1080x1920
-    # 2. Draw Show Header badge
-    # 3. Draw Central Quote/Hook
-    # 4. Generate dynamic live audio waveform from audio stream: showwaves=s=920x280:mode=cline:colors=0x38bdf8:rate=25
-    # 5. Overlay waveform in lower third
-    # 6. Draw bottom CTA banner
-    filter_complex = (
-        f"color=c=#090d16:s=1080x1920:d={duration}[bg];"
-        f"[bg]drawtext=text='PHARMACIST BEN | {clean_title}'{font_arg}:fontcolor=0x38bdf8:fontsize=36:box=1:"
-        "boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=220[bg1];"
-        f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=48:box=1:"
-        "boxcolor=black@0.65:boxborderw=14:x=(w-text_w)/2:y=680[bg2];"
-        "[0:a]showwaves=s=920x260:mode=cline:colors=0x38bdf8@0.9:scale=sqrt:rate=25[wave];"
-        "[bg2][wave]overlay=(W-w)/2:1120[v3];"
-        f"[v3]drawtext=text='{clean_cta}'{font_arg}:fontcolor=yellow:fontsize=38:box=1:"
-        "boxcolor=black@0.75:boxborderw=10:x=(w-text_w)/2:y=1580[v]"
-    )
+    has_valid_image = bool(image_path and os.path.exists(image_path) and os.path.getsize(image_path) > 500)
 
-    if output_gif:
-        # High quality GIF generation using palettegen/paletteuse
-        cmd = [
-            "ffmpeg", "-y",
+    if has_valid_image:
+        # Multi-layer layout with cover artwork:
+        # 1. Ambient blurred background: scale/crop image to 1080x1920, heavy boxblur, darkened tint
+        # 2. Centered crisp image card (620x620) with glowing cyan border
+        # 3. Header badge pill at y=170
+        # 4. Central quote text at y=980
+        # 5. Live animated audio waveform at y=1240
+        # 6. Call-to-action banner at y=1640
+        filter_complex = (
+            "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
+            "boxblur=25:5,drawbox=x=0:y=0:w=1080:h=1920:color=black@0.65:t=fill[ambient];"
+            "[1:v]scale=620:620:force_original_aspect_ratio=increase,crop=620:620,"
+            "pad=636:636:8:8:color=0x38bdf8@0.9[card];"
+            "[ambient][card]overlay=(W-w)/2:270[bg0];"
+            f"[bg0]drawtext=text='PHARMACIST BEN | {clean_title}'{font_arg}:fontcolor=0x38bdf8:fontsize=34:box=1:"
+            "boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=170[bg1];"
+            f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=46:box=1:"
+            "boxcolor=black@0.7:boxborderw=14:x=(w-text_w)/2:y=980[bg2];"
+            "[0:a]showwaves=s=920x240:mode=cline:colors=0x38bdf8@0.9:scale=sqrt:rate=25[wave];"
+            "[bg2][wave]overlay=(W-w)/2:1240[v3];"
+            f"[v3]drawtext=text='{clean_cta}'{font_arg}:fontcolor=yellow:fontsize=36:box=1:"
+            "boxcolor=black@0.75:boxborderw=10:x=(w-text_w)/2:y=1640[v]"
+        )
+        input_args = [
             "-ss", str(start_sec),
             "-t", str(duration),
             "-i", audio_path,
+            "-loop", "1",
+            "-framerate", "25",
+            "-i", image_path
+        ]
+    else:
+        # Clean modern dark slate fallback layout
+        filter_complex = (
+            f"color=c=#090d16:s=1080x1920:d={duration}[bg];"
+            f"[bg]drawtext=text='PHARMACIST BEN | {clean_title}'{font_arg}:fontcolor=0x38bdf8:fontsize=36:box=1:"
+            "boxcolor=black@0.5:boxborderw=10:x=(w-text_w)/2:y=220[bg1];"
+            f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=48:box=1:"
+            "boxcolor=black@0.65:boxborderw=14:x=(w-text_w)/2:y=680[bg2];"
+            "[0:a]showwaves=s=920x260:mode=cline:colors=0x38bdf8@0.9:scale=sqrt:rate=25[wave];"
+            "[bg2][wave]overlay=(W-w)/2:1120[v3];"
+            f"[v3]drawtext=text='{clean_cta}'{font_arg}:fontcolor=yellow:fontsize=38:box=1:"
+            "boxcolor=black@0.75:boxborderw=10:x=(w-text_w)/2:y=1580[v]"
+        )
+        input_args = [
+            "-ss", str(start_sec),
+            "-t", str(duration),
+            "-i", audio_path
+        ]
+
+    if output_gif:
+        cmd = [
+            "ffmpeg", "-y",
+            *input_args,
             "-filter_complex", f"{filter_complex};[v]split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse",
             "-r", "15",
+            "-t", str(duration),
             output_path
         ]
     else:
-        # 9:16 H.264 Vertical MP4
         cmd = [
             "ffmpeg", "-y",
-            "-ss", str(start_sec),
-            "-t", str(duration),
-            "-i", audio_path,
+            *input_args,
             "-filter_complex", filter_complex,
             "-map", "[v]",
             "-map", "0:a",
@@ -88,6 +120,7 @@ def render_audiogram_motion_video(
             "-b:a", "128k",
             "-ar", "44100",
             "-ac", "2",
+            "-t", str(duration),
             "-movflags", "+faststart",
             output_path
         ]
