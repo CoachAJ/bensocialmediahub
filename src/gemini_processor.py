@@ -102,7 +102,7 @@ def analyze_raw_media(file_path: str) -> LongFormAnalysis:
     Analyze this video/audio media from Pharmacist Ben's broadcast.
     CRITICAL CONSTRAINT: This audio sample is exactly {max_time_str} ({int(duration_sec)} seconds) in length.
     All segment clip proposals MUST have start_time and end_time strictly between 00:00 and {max_time_str}. Do NOT propose timestamps beyond {max_time_str}.
-    1. Identify 1 to 2 distinct, highly engaging 30-60 second segments focused on root-cause biology, cellular health, or nutrition.
+    1. Identify 2 to 3 distinct, highly engaging, non-overlapping 30-60 second segments focused on root-cause biology, cellular health, or nutrition. Each clip should capture a unique takeaway or golden nugget from the discussion (e.g. medical mythbuster, practical nutritional protocol, surprising physiological mechanism).
     2. For each segment, provide exact start and end timestamps (format MM:SS, strictly between 00:00 and {max_time_str}), an on-screen hook headline, a burned visual CTA banner directing to PharmacistBensAcademy.com, and platform-tailored copy.
     3. For each segment, create a vivid `visual_concept_prompt` (depicting the physiological/cellular concept in 3D scientific art style) and 2-4 `topic_search_keywords` (e.g., "human lymphatic system" or "mitochondria ATP").
     4. Generate an educational multiple-choice quiz question with 4 options, the correct index (0-3), and an insightful explanation for a community learning module.

@@ -29,12 +29,13 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
     """
     manifest = load_manifest()
     processed_episodes = set(manifest.get("podcast_episodes", []))
-    new_episodes: list[PodcastEpisode] = []
+    per_show: dict[str, list[PodcastEpisode]] = {}
     feeds = get_podcast_feeds()
 
     for show_name, feed_url in feeds.items():
         if not feed_url or "placeholder" in feed_url:
             continue
+        per_show[show_name] = []
         try:
             feed = feedparser.parse(feed_url)
             count = 0
@@ -91,7 +92,7 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
                 final_image_url = ep_image_url or show_image_url
 
                 if audio_url:
-                    new_episodes.append(PodcastEpisode(
+                    per_show[show_name].append(PodcastEpisode(
                         podcast_name=show_name,
                         episode_id=ep_id,
                         title=entry.get("title", "Untitled Episode"),
@@ -106,7 +107,15 @@ def fetch_unprocessed_podcast_episodes(max_per_feed: int = 1) -> list[PodcastEpi
         except Exception as e:
             print(f"Error parsing feed for '{show_name}' ({feed_url}): {e}")
 
-    return new_episodes
+    # Round-robin interleave across feeds so multiple shows get balanced coverage
+    interleaved: list[PodcastEpisode] = []
+    max_len = max((len(eps) for eps in per_show.values()), default=0)
+    for i in range(max_len):
+        for show_name in feeds.keys():
+            if show_name in per_show and i < len(per_show[show_name]):
+                interleaved.append(per_show[show_name][i])
+
+    return interleaved
 
 def download_podcast_audio_sample(audio_url: str, output_path: str, max_bytes: int = 15 * 1024 * 1024):
     """

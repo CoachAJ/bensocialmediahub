@@ -25,7 +25,9 @@ class Config(BaseModel):
 
     # Google Drive & Sheets Credentials
     GDRIVE_SERVICE_ACCOUNT_JSON: str = Field(default_factory=lambda: os.getenv("GDRIVE_SERVICE_ACCOUNT_JSON", ""))
-    GDRIVE_EXISTING_FOLDER_ID: str = Field(default_factory=lambda: os.getenv("GDRIVE_EXISTING_FOLDER_ID", ""))
+    GDRIVE_EXISTING_FOLDER_ID: str = Field(
+        default_factory=lambda: os.getenv("GDRIVE_EXISTING_FOLDER_ID", "1OSrOtufSLN4DAFb1t9o8yPntzn3wdSdt")
+    )
     GDRIVE_RAW_FOLDER_ID: str = Field(default_factory=lambda: os.getenv("GDRIVE_RAW_FOLDER_ID", ""))
     GDRIVE_OUTPUT_FOLDER_ID: str = Field(default_factory=lambda: os.getenv("GDRIVE_OUTPUT_FOLDER_ID", ""))
     GOOGLE_SHEET_ID: str = Field(default_factory=lambda: os.getenv("GOOGLE_SHEET_ID", ""))
@@ -33,13 +35,13 @@ class Config(BaseModel):
 
     # Podcast RSS Feeds
     RSS_BENS_BYTES: str = Field(
-        default_factory=lambda: os.getenv("RSS_BENS_BYTES", "https://anchor.fm/s/placeholder/podcast/rss")
+        default_factory=lambda: os.getenv("RSS_BENS_BYTES", "https://anchor.fm/s/10c2c6674/podcast/rss")
     )
     RSS_MINERAL_WAY: str = Field(
-        default_factory=lambda: os.getenv("RSS_MINERAL_WAY", "https://mineralway.libsyn.com/rss")
+        default_factory=lambda: os.getenv("RSS_MINERAL_WAY", "https://rss.libsyn.com/shows/562215/destinations/4859135.xml")
     )
     RSS_AGING_WELL: str = Field(
-        default_factory=lambda: os.getenv("RSS_AGING_WELL", "https://feeds.buzzsprout.com/placeholder.rss")
+        default_factory=lambda: os.getenv("RSS_AGING_WELL", "https://bbsradio.com/customshow/mrss/290193")
     )
 
     # Core Destinations & Contact

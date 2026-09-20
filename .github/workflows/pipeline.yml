@@ -57,11 +57,11 @@ jobs:
           BUFFER_ORGANIZATION_ID: ${{ secrets.BUFFER_ORGANIZATION_ID }}
           BUFFER_PROFILE_IDS: ${{ secrets.BUFFER_PROFILE_IDS }}
           BUFFER_PROFILE_MAP_JSON: ${{ secrets.BUFFER_PROFILE_MAP_JSON }}
-          GDRIVE_EXISTING_FOLDER_ID: ${{ secrets.GDRIVE_EXISTING_FOLDER_ID }}
+          GDRIVE_EXISTING_FOLDER_ID: ${{ secrets.GDRIVE_EXISTING_FOLDER_ID || '1OSrOtufSLN4DAFb1t9o8yPntzn3wdSdt' }}
           GOOGLE_SHEET_WEBHOOK_URL: ${{ secrets.GOOGLE_SHEET_WEBHOOK_URL }}
-          RSS_BENS_BYTES: ${{ secrets.RSS_BENS_BYTES }}
-          RSS_MINERAL_WAY: ${{ secrets.RSS_MINERAL_WAY }}
-          RSS_AGING_WELL: ${{ secrets.RSS_AGING_WELL }}
+          RSS_BENS_BYTES: ${{ secrets.RSS_BENS_BYTES || 'https://anchor.fm/s/10c2c6674/podcast/rss' }}
+          RSS_MINERAL_WAY: ${{ secrets.RSS_MINERAL_WAY || 'https://rss.libsyn.com/shows/562215/destinations/4859135.xml' }}
+          RSS_AGING_WELL: ${{ secrets.RSS_AGING_WELL || 'https://bbsradio.com/customshow/mrss/290193' }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           HEALTH_COACH_PHONE: ${{ secrets.HEALTH_COACH_PHONE || '(855) 835-2777' }}

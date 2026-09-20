@@ -129,10 +129,11 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
         log_progress("rss", f"Found {len(new_episodes)} new podcast episodes across feeds.")
 
         for ep in new_episodes[:max_items_per_source]:
+            safe_show = ep.podcast_name.lower().replace(" ", "_").replace("'", "")[:10]
             safe_id = "".join(c for c in ep.episode_id if c.isalnum())[-12:]
             log_progress("podcast_ep", f"Processing episode from '{ep.podcast_name}': {ep.title}")
 
-            local_audio_path = f"tmp/audio/{safe_id}.mp3"
+            local_audio_path = f"tmp/audio/{safe_show}_{safe_id}.mp3"
             log_progress("audio_dl", f"Downloading audio sample from episode...")
             try:
                 download_podcast_audio_sample(ep.audio_url, local_audio_path)
@@ -140,7 +141,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                 log_progress("audio_warn", f"Could not download audio stream: {e}. Skipping episode.")
                 continue
 
-            log_progress("gemini", "Analyzing episode audio with Gemini for golden nugget & Skool quiz...")
+            log_progress("gemini", "Analyzing episode audio with Gemini for golden nuggets & Skool quiz...")
             try:
                 analysis = analyze_raw_media(local_audio_path)
             except Exception as e:
@@ -148,7 +149,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                 continue
 
             # 1. Generate Skool Community Quiz Embed
-            quiz_path = f"output/quizzes/{safe_id}_quiz.html"
+            quiz_path = f"output/quizzes/{safe_show}_{safe_id}_quiz.html"
             log_progress("quiz", f"Generating interactive Skool quiz embed at {quiz_path}...")
             render_skool_quiz_embed(
                 question=analysis.quiz_question,
@@ -159,7 +160,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
             )
 
             # 2. Render Vertical 9:16 Audiogram Motion Video with Alternating Visual Imagery
-            local_show_image_path = f"tmp/images/{safe_id}_show.jpg"
+            local_show_image_path = f"tmp/images/{safe_show}_{safe_id}_show.jpg"
             chosen_show_image_path = None
             if ep.image_url:
                 log_progress("image_dl", f"Downloading cover artwork for '{ep.title}'...")
@@ -171,8 +172,12 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                 chosen_show_image_path = "assets/pharmacist_ben.jpg"
 
             audiogram_scheduled = False
-            for idx, clip in enumerate(analysis.clips[:1]):
-                audiogram_path = f"output/audiograms/{safe_id}_clip_{idx}.mp4"
+            max_clips = getattr(args, "max_clips", 3)
+            clips_to_process = analysis.clips[:max_clips]
+            log_progress("clips_found", f"Extracted {len(clips_to_process)} golden nuggets from '{ep.title}'. Rendering audiograms...")
+
+            for idx, clip in enumerate(clips_to_process):
+                audiogram_path = f"output/audiograms/{safe_show}_{safe_id}_clip_{idx}.mp4"
                 
                 # Determine alternating visual style:
                 # Even counter: Show artwork / brand portrait
@@ -186,8 +191,8 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                     is_topic_style = (current_style_idx % 2 == 1)
 
                 if is_topic_style:
-                    log_progress("image_ai", f"Generating Gemini topic visual for '{clip.hook_headline}'...")
-                    topic_img_path = f"tmp/images/{safe_id}_topic_{idx}.png"
+                    log_progress("image_ai", f"Generating Gemini topic visual for '{clip.hook_headline}' (Clip {idx+1}/{len(clips_to_process)})...")
+                    topic_img_path = f"tmp/images/{safe_show}_{safe_id}_topic_{idx}.png"
                     chosen_image_path = generate_clip_topic_image(
                         prompt=clip.visual_concept_prompt or clip.hook_headline,
                         keywords=clip.topic_search_keywords or clip.hook_headline,
@@ -198,7 +203,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                     badge_color = "0x38bdf8"  # Cyan border & badge accent
                     style_label = "Gemini Topic Illustration"
                 else:
-                    log_progress("image_show", f"Using show artwork for '{ep.podcast_name}'...")
+                    log_progress("image_show", f"Using show artwork for '{ep.podcast_name}' (Clip {idx+1}/{len(clips_to_process)})...")
                     chosen_image_path = chosen_show_image_path
                     badge_label = f"PHARMACIST BEN | {ep.podcast_name}"
                     badge_color = "0x38bdf8"  # Electric cyan for show cover art
@@ -226,7 +231,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                 # Upload to GitHub Releases CDN for public Buffer access
                 log_progress("hosting", f"Publishing {style_label} audiogram to GitHub CDN...")
                 try:
-                    media_url = upload_public_clip(audiogram_path, f"audiogram_{safe_id}_{idx}.mp4")
+                    media_url = upload_public_clip(audiogram_path, f"audiogram_{safe_show}_{safe_id}_{idx}.mp4")
                 except Exception as e:
                     log_progress("hosting_warn", f"Could not publish audiogram to GitHub CDN: {e}")
                     media_url = None
@@ -245,7 +250,7 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
                             media_url=media_url
                         )
                         up_id = str(update.get("updates", [{}])[0].get("id", "queued"))
-                        log_event(now_str, f"{ep.title} [Clip {idx}]", f"Podcast Audiogram ({style_label})", "Scheduled", up_id, config.PODCASTS_URL)
+                        log_event(now_str, f"{ep.podcast_name}: {ep.title} [Clip {idx+1}]", f"Podcast Audiogram ({style_label})", "Scheduled", up_id, config.PODCASTS_URL)
                         if update.get("success"):
                             audiogram_scheduled = True
                     else:
@@ -253,9 +258,9 @@ def run_pipeline(mode: str = "all", max_items_per_source: int = 2, visual_style:
 
             if audiogram_scheduled:
                 manifest["podcast_episodes"].append(ep.episode_id)
-                manifest["visual_style_counter"] = style_counter + 1
+                manifest["visual_style_counter"] = style_counter + len(clips_to_process)
                 save_manifest(manifest)
-                log_progress("podcast_done", f"Finished episode '{ep.title}'. Manifest saved (next style: {'Show Cover Art' if (style_counter + 1) % 2 == 0 else 'Gemini Topic Art'}).")
+                log_progress("podcast_done", f"Finished episode '{ep.title}' ({len(clips_to_process)} clips processed). Manifest saved.")
             else:
                 log_progress("podcast_retry", f"Episode '{ep.title}' will be retried on next run (audiogram not yet scheduled).")
 
@@ -265,6 +270,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Pharmacist Ben Promotion Engine Orchestrator")
     parser.add_argument("--mode", choices=["all", "shorts", "podcasts", "dry-run"], default="all", help="Execution mode")
     parser.add_argument("--max", type=int, default=2, help="Max items per source to process")
+    parser.add_argument("--max-clips", type=int, default=3, help="Max clips to extract per podcast episode")
     parser.add_argument(
         "--style",
         choices=["topic", "alternate", "show"],
