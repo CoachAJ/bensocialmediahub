@@ -49,27 +49,24 @@ def render_audiogram_motion_video(
     has_valid_image = bool(image_path and os.path.exists(image_path) and os.path.getsize(image_path) > 500)
 
     if has_valid_image:
-        # Multi-layer layout with artwork/topic illustration:
-        # 1. Ambient blurred background: scale/crop image to 1080x1920, heavy boxblur, darkened tint
-        # 2. Centered crisp image card (620x620) with glowing border
-        # 3. Header badge pill at y=170
-        # 4. Central quote text at y=980
+        # Full-Bleed Edge-to-Edge Layout:
+        # 1. Scale and crop the image to fill the entire 1080x1920 (9:16) vertical canvas
+        # 2. Subtle 35% dark tint overlay so text and audio waveforms pop with maximum readability
+        # 3. Header badge pill at y=180
+        # 4. Central quote text at y=860
         # 5. Live animated audio waveform at y=1240
-        # 6. Call-to-action banner at y=1640
+        # 6. Call-to-action banner at y=1680
         filter_complex = (
             "[1:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
-            "boxblur=25:5,drawbox=x=0:y=0:w=1080:h=1920:color=black@0.65:t=fill[ambient];"
-            f"[1:v]scale=620:620:force_original_aspect_ratio=increase,crop=620:620,"
-            f"pad=636:636:8:8:color={badge_color}@0.9[card];"
-            "[ambient][card]overlay=(W-w)/2:270[bg0];"
-            f"[bg0]drawtext=text='{header_text}'{font_arg}:fontcolor={badge_color}:fontsize=34:box=1:"
-            "boxcolor=black@0.6:boxborderw=10:x=(w-text_w)/2:y=170[bg1];"
-            f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=46:box=1:"
-            "boxcolor=black@0.7:boxborderw=14:x=(w-text_w)/2:y=980[bg2];"
-            "[0:a]showwaves=s=920x240:mode=cline:colors=0x38bdf8@0.9:scale=sqrt:rate=25[wave];"
+            "drawbox=x=0:y=0:w=1080:h=1920:color=black@0.35:t=fill[bg0];"
+            f"[bg0]drawtext=text='{header_text}'{font_arg}:fontcolor={badge_color}:fontsize=36:box=1:"
+            "boxcolor=black@0.65:boxborderw=12:x=(w-text_w)/2:y=180[bg1];"
+            f"[bg1]drawtext=text='{clean_quote}'{font_arg}:fontcolor=white:fontsize=48:box=1:"
+            "boxcolor=black@0.7:boxborderw=16:x=(w-text_w)/2:y=860[bg2];"
+            "[0:a]showwaves=s=940x260:mode=cline:colors=0x38bdf8@0.95:scale=sqrt:rate=25[wave];"
             "[bg2][wave]overlay=(W-w)/2:1240[v3];"
             f"[v3]drawtext=text='{clean_cta}'{font_arg}:fontcolor=yellow:fontsize=36:box=1:"
-            "boxcolor=black@0.75:boxborderw=10:x=(w-text_w)/2:y=1640[v]"
+            "boxcolor=black@0.75:boxborderw=12:x=(w-text_w)/2:y=1680[v]"
         )
         input_args = [
             "-ss", str(start_sec),
