@@ -120,11 +120,11 @@
 <body>
   <div class="quiz-card">
     <span class="badge">Pharmacist Ben's Health Challenge</span>
-    <div class="question" id="quiz-question">What is a major limitation of epidemiological dietary studies compared to empirical laboratory research?</div>
+    <div class="question" id="quiz-question">What is the primary limitation of epidemiological health studies as explained by Pharmacist Ben?</div>
     <div class="options-grid" id="options-container"></div>
     <div class="explanation" id="explanation">
       <strong>Biological Insight:</strong>
-      <p id="explanation-text">Epidemiological studies draw statistical associations based on self-reported questionnaires and cannot account for all confounding variables like lifestyle, exercise, or environmental stressors, unlike empirical laboratory studies that prove direct biological mechanisms.</p>
+      <p id="explanation-text">Epidemiological studies observe patterns and rely on self-reported questionnaires, which cannot control for all lifestyle variables (like exercise, stress, or cooking oils). Empirical studies, conversely, look at direct physical and cellular evidence to establish true biological mechanisms.</p>
     </div>
     <div class="cta-footer" id="cta-footer">
       <a href="https://pharmacistbensacademy.com" target="_blank" rel="noopener">
@@ -143,8 +143,8 @@
   </div>
 
   <script>
-    const options = ["They rely on questionnaires and correlations rather than proving direct biological causation", "They only observe cellular mitochondria under laboratory microscopes", "They strictly control every single lifestyle variable including stress and pollution", "They rely exclusively on synthetic pharmaceutical trials"];
-    const correctIdx = 0;
+    const options = ["They only study animal models instead of humans.", "They rely on subjective questionnaires and correlation rather than direct empirical mechanisms.", "They are too expensive to conduct over long periods.", "They only focus on synthetic pharmaceutical interventions."];
+    const correctIdx = 1;
     const container = document.getElementById('options-container');
     const expBox = document.getElementById('explanation');
     const ctaFooter = document.getElementById('cta-footer');
